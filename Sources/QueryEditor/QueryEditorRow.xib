@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15705" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15705"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="QueryEditorRow" customModule="Draggable_Grid_View" customModuleProvider="target">
+            <connections>
+                <outlet property="controlsStackView" destination="vUc-CT-HSM" id="eeN-Ic-DS1"/>
+                <outlet property="queryFieldsPopup" destination="sUL-vc-xwQ" id="LjN-nr-oqH"/>
+                <outlet property="queryOperatorsPopup" destination="pB5-fa-lXc" id="EbO-ls-CAx"/>
+                <outlet property="queryValueDatePicker" destination="iod-iR-SJ8" id="Tpw-gY-wnS"/>
+                <outlet property="queryValueTextField" destination="nJ1-40-dNs" id="voi-ie-ZYV"/>
+                <outlet property="queryValuesPopup" destination="7pA-Ne-a70" id="CuV-BP-LbC"/>
+                <outlet property="removeRowButton" destination="lzG-i1-bLa" id="zZW-W2-m1g"/>
+                <outlet property="view" destination="Hz6-mo-xeY" id="0bl-1N-x8E"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="Hz6-mo-xeY" customClass="QueryEditorRow" customModule="Draggable_Grid_View" customModuleProvider="target">
+            <rect key="frame" x="0.0" y="0.0" width="620" height="32"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <customView id="xZE-pe-CCR">
+                    <rect key="frame" x="0.0" y="-6" width="620" height="38"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <subviews>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lzG-i1-bLa">
+                            <rect key="frame" x="576" y="9" width="18" height="19"/>
+                            <constraints>
+                                <constraint firstAttribute="width" constant="18" id="bBp-aN-6bh"/>
+                                <constraint firstAttribute="height" constant="18" id="jhG-lt-5ea"/>
+                            </constraints>
+                            <buttonCell key="cell" type="roundRect" title="Button" bezelStyle="roundedRect" image="NSRemoveTemplate" imagePosition="only" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="Zo5-qn-G81">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="cellTitle"/>
+                            </buttonCell>
+                            <connections>
+                                <action selector="removeRowAction:" target="-2" id="3Fr-sL-1ag"/>
+                            </connections>
+                        </button>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Kde-id-ArX">
+                            <rect key="frame" x="598" y="9" width="18" height="19"/>
+                            <constraints>
+                                <constraint firstAttribute="width" constant="18" id="P3C-J3-Yxe"/>
+                                <constraint firstAttribute="height" constant="18" id="RuA-WS-8S0"/>
+                            </constraints>
+                            <buttonCell key="cell" type="roundRect" title="Button" bezelStyle="roundedRect" image="NSAddTemplate" imagePosition="only" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="tet-OS-VBZ">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="cellTitle"/>
+                            </buttonCell>
+                            <connections>
+                                <action selector="addRowAction:" target="-2" id="a4P-Yg-te0"/>
+                            </connections>
+                        </button>
+                        <stackView distribution="fill" orientation="horizontal" alignment="centerY" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="vUc-CT-HSM">
+                            <rect key="frame" x="0.0" y="0.0" width="523" height="38"/>
+                            <subviews>
+                                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="sUL-vc-xwQ" customClass="QueryFieldsPopup" customModule="Draggable_Grid_View" customModuleProvider="target">
+                                    <rect key="frame" x="4" y="9" width="62" height="19"/>
+                                    <popUpButtonCell key="cell" type="roundRect" title="Item 1" bezelStyle="roundedRect" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" selectedItem="jMN-XI-NS7" id="Tgt-ia-xJs">
+                                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                        <font key="font" metaFont="cellTitle"/>
+                                        <menu key="menu" id="UYw-Cu-MGZ">
+                                            <items>
+                                                <menuItem title="Item 1" state="on" id="jMN-XI-NS7"/>
+                                                <menuItem title="Item 2" id="EXR-vP-OM2"/>
+                                                <menuItem title="Item 3" id="x1K-oU-F2X"/>
+                                            </items>
+                                        </menu>
+                                    </popUpButtonCell>
+                                </popUpButton>
+                                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="pB5-fa-lXc" customClass="QueryOperatorsPopup" customModule="Draggable_Grid_View" customModuleProvider="target">
+                                    <rect key="frame" x="74" y="9" width="62" height="19"/>
+                                    <popUpButtonCell key="cell" type="roundRect" title="Item 1" bezelStyle="roundedRect" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" selectedItem="ksg-vZ-vJ9" id="Uen-Vd-0EM">
+                                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                        <font key="font" metaFont="cellTitle"/>
+                                        <menu key="menu" id="Gse-2D-LqS">
+                                            <items>
+                                                <menuItem title="Item 1" state="on" id="ksg-vZ-vJ9"/>
+                                                <menuItem title="Item 2" id="o6Y-Oz-Dya"/>
+                                                <menuItem title="Item 3" id="9et-En-n52"/>
+                                            </items>
+                                        </menu>
+                                    </popUpButtonCell>
+                                </popUpButton>
+                                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="7pA-Ne-a70">
+                                    <rect key="frame" x="144" y="9" width="62" height="19"/>
+                                    <popUpButtonCell key="cell" type="roundRect" title="Item 1" bezelStyle="roundedRect" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" selectedItem="gLM-1Z-lLV" id="2LT-Pc-qnW">
+                                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                        <font key="font" metaFont="cellTitle"/>
+                                        <menu key="menu" id="pne-dO-UcB">
+                                            <items>
+                                                <menuItem title="Item 1" state="on" id="gLM-1Z-lLV"/>
+                                                <menuItem title="Item 2" id="F6E-If-NlU"/>
+                                                <menuItem title="Item 3" id="l3U-03-KbC"/>
+                                            </items>
+                                        </menu>
+                                    </popUpButtonCell>
+                                </popUpButton>
+                                <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="nJ1-40-dNs">
+                                    <rect key="frame" x="214" y="8" width="200" height="22"/>
+                                    <constraints>
+                                        <constraint firstAttribute="width" constant="200" id="Uu4-ok-cal"/>
+                                    </constraints>
+                                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" id="HJQ-jD-1ID">
+                                        <font key="font" metaFont="smallSystem"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                </textField>
+                                <datePicker verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="iod-iR-SJ8">
+                                    <rect key="frame" x="422" y="8" width="100" height="27"/>
+                                    <constraints>
+                                        <constraint firstAttribute="width" constant="97" id="UYB-1f-3wy"/>
+                                    </constraints>
+                                    <datePickerCell key="cell" borderStyle="bezel" alignment="left" id="Hq1-FU-rNr">
+                                        <font key="font" metaFont="system"/>
+                                        <date key="date" timeIntervalSinceReferenceDate="-595929600">
+                                            <!--1982-02-12 16:00:00 +0000-->
+                                        </date>
+                                        <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    </datePickerCell>
+                                </datePicker>
+                            </subviews>
+                            <edgeInsets key="edgeInsets" left="4" right="4" top="0.0" bottom="0.0"/>
+                            <constraints>
+                                <constraint firstItem="nJ1-40-dNs" firstAttribute="top" secondItem="vUc-CT-HSM" secondAttribute="top" constant="8" id="BZd-oH-pTR"/>
+                                <constraint firstItem="nJ1-40-dNs" firstAttribute="centerY" secondItem="vUc-CT-HSM" secondAttribute="centerY" id="QaD-jd-d1v"/>
+                                <constraint firstItem="nJ1-40-dNs" firstAttribute="baseline" secondItem="iod-iR-SJ8" secondAttribute="baseline" id="S5N-0d-eia"/>
+                            </constraints>
+                            <visibilityPriorities>
+                                <integer value="1000"/>
+                                <integer value="1000"/>
+                                <integer value="1000"/>
+                                <integer value="1000"/>
+                                <integer value="1000"/>
+                            </visibilityPriorities>
+                            <customSpacing>
+                                <real value="3.4028234663852886e+38"/>
+                                <real value="3.4028234663852886e+38"/>
+                                <real value="3.4028234663852886e+38"/>
+                                <real value="3.4028234663852886e+38"/>
+                                <real value="3.4028234663852886e+38"/>
+                            </customSpacing>
+                        </stackView>
+                    </subviews>
+                    <constraints>
+                        <constraint firstItem="vUc-CT-HSM" firstAttribute="leading" secondItem="xZE-pe-CCR" secondAttribute="leading" id="3lg-yR-3BZ"/>
+                        <constraint firstAttribute="trailing" secondItem="Kde-id-ArX" secondAttribute="trailing" constant="4" id="FDU-At-Q6y"/>
+                        <constraint firstItem="lzG-i1-bLa" firstAttribute="centerY" secondItem="xZE-pe-CCR" secondAttribute="centerY" id="MBW-aS-JqG"/>
+                        <constraint firstItem="lzG-i1-bLa" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="vUc-CT-HSM" secondAttribute="trailing" constant="8" symbolic="YES" id="XSW-fx-BXu"/>
+                        <constraint firstItem="Kde-id-ArX" firstAttribute="centerY" secondItem="xZE-pe-CCR" secondAttribute="centerY" id="aFc-Mw-zEw"/>
+                        <constraint firstItem="vUc-CT-HSM" firstAttribute="top" secondItem="xZE-pe-CCR" secondAttribute="top" id="hZe-1p-Qgu"/>
+                        <constraint firstAttribute="bottom" secondItem="vUc-CT-HSM" secondAttribute="bottom" id="rv1-0c-3rf"/>
+                        <constraint firstItem="Kde-id-ArX" firstAttribute="leading" secondItem="lzG-i1-bLa" secondAttribute="trailing" constant="4" id="x9e-In-8aS"/>
+                    </constraints>
+                </customView>
+            </subviews>
+            <point key="canvasLocation" x="-180" y="80"/>
+        </customView>
+    </objects>
+    <resources>
+        <image name="NSAddTemplate" width="11" height="11"/>
+        <image name="NSRemoveTemplate" width="11" height="11"/>
+    </resources>
+</document>

@@ -125,7 +125,7 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
     
     // MARK: - TableView Delegate
 
-    open func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+    public func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         guard let whereExpression = query?.whereExpressions[row],
             let identifier = tableColumn?.identifier,
             let editorRow = tableView.makeView(withIdentifier: identifier, owner: self) as? QueryEditorRow<DB>

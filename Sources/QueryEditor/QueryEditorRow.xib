@@ -103,6 +103,7 @@
                                 <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="nJ1-40-dNs">
                                     <rect key="frame" x="214" y="10" width="200" height="19"/>
                                     <constraints>
+                                        <constraint firstAttribute="height" constant="19" id="ExR-TW-pEW"/>
                                         <constraint firstAttribute="width" constant="200" id="Uu4-ok-cal"/>
                                     </constraints>
                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" id="HJQ-jD-1ID">

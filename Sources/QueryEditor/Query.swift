@@ -85,8 +85,8 @@ public struct BOType: Equatable {
         self.rawValue = rawValue
     }
     
-    static var table = BOType("table")
-    static var linker = BOType("linker")
+    public static var table = BOType("table")
+    public static var linker = BOType("linker")
     
     var localizedStringRepresentation: String {
         return NSLocalizedString(rawValue, comment: rawValue).capitalized(with: Locale.current)

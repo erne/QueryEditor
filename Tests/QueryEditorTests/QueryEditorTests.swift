@@ -75,7 +75,7 @@ class Field: NSObject, QueryField {
     }
 }
 
-class MyQueryEditorRow: QueryEditorRow<DB, BO, Field> {}
+class MyQueryEditorRow: QueryEditorRow<DB> {}
 
 final class QueryEditorTests: XCTestCase {
     func testCreateDB(addAlias: Bool = false) -> DB {
@@ -100,9 +100,9 @@ final class QueryEditorTests: XCTestCase {
     func querySelect(addBOAlias: Bool = false, addFieldAlias: Bool = false) {
         let db = testCreateDB(addAlias: addBOAlias)
         guard let bo = db.bos.first else { fatalError("test failed") }
-        XCTAssertEqual(QuerySelect(select: bo.fields.first?.name ?? "",
+        XCTAssertEqual(QuerySelect(fieldExpression: bo.fields.first?.name ?? "",
                                    bo: bo,
-                                   alias: addFieldAlias ? "artist name" : nil).expression,
+                                   fieldAlias: addFieldAlias ? "artist name" : nil).expression,
                        (addBOAlias ?
                         (addFieldAlias ? "a.name as [artist name]" : "a.name")  :
                         (addFieldAlias ? "Artists.name as [artist name]" : "Artists.name")))
@@ -343,6 +343,45 @@ final class QueryEditorTests: XCTestCase {
             queryWhere(type: $0, addBOAlias: true, addFieldAlias: true)
         }
     }
+    
+//    func testQueryEditor() {
+//        let db = testCreateDB(addAlias: true)
+//        guard let bo = db.bos.first,
+//            let field = (bo as? Artists)?.nameField else { fatalError("test failed") }
+//
+////        let expected: String = {
+////            let leftArgument = (addFieldAlias ? "[string field]" : (addBOAlias ? "a.name" : "Artists.name"))
+////            switch `operator` {
+////            case .equal:
+////                return "\(leftArgument) = 'Dylan'"
+////            case .beginsWith:
+////                return "LEFT(\(leftArgument), 5) = 'Dylan'"
+////            case .endsWith:
+////                return "RIGHT(\(leftArgument), 5) = 'Dylan'"
+////            case .contains:
+////                return "\(leftArgument) LIKE '%Dylan%'"
+////            default:
+////                return ""
+////            }
+////        }()
+//
+//        let queryWhere = QueryWhere(fieldExpression: field.name,
+//                                    value: "Dylan",
+//                                    operator: .equal,
+//                                    bo: bo,
+//                                    fieldAlias: nil)
+//
+//        let query = Query(db: db)
+//        query.whereExpressions = [queryWhere]
+//        let editor = QueryEditor<DB>(nibName: "QueryEditor", bundle: nil)
+//        let window = NSWindow(contentRect: editor.view.bounds, styleMask: [], backing: .buffered, defer: true)
+//        window.contentViewController = editor
+//        window.orderFront(nil)
+//        XCTAssertTrue(editor.isViewLoaded)
+//        editor.query = query
+//        let bosPopup = editor.bosPopup
+//        XCTAssertEqual(bosPopup?.item(at: 0)?.title, "Artists")
+//    }
     
     static var allTests = [
         ("testCreateDB", testCreateDB),

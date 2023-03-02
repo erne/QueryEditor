@@ -8,6 +8,9 @@
 
 import Cocoa
 
+/**
+ A menu to represent the searchable fields of a database.
+ */
 final class QueryFieldsMenu<DB: QueryDB>: NSMenu {
     
     init(title: String = "", db: DB) { //}, action: Selector?) {
@@ -42,47 +45,51 @@ final class QueryFieldsMenu<DB: QueryDB>: NSMenu {
         super.init(coder: coder)
     }
 }
-
-struct QueryFieldsPopupManager<D: QueryDB, B: QueryBO, F: QueryField> {
+/**
+ Manager for a popup button representing the searchable fields of a database.
+ */
+struct QueryFieldsPopupManager<DB: QueryDB> {
+    typealias BO = DB.BO
+    typealias Field = BO.Field
     let popUp: QueryFieldsPopup
         
-    var selectedField: F? {
-        get { popUp.selectedItem?.representedObject as? F }
+    var selectedField: Field? {
+        get { popUp.selectedItem?.representedObject as? Field }
         set {
             let index = popUp.indexOfItem(withRepresentedObject: newValue)
             popUp.selectItem(at: index)
         }
     }
     
-    func firstItem(for bo: B) -> NSMenuItem? {
-        popUp.itemArray.first(where: { ($0.representedObject as? F)?.bo === bo })
+    func firstItem(for bo: BO) -> NSMenuItem? {
+        popUp.itemArray.first(where: { ($0.representedObject as? Field)?.bo === bo })
     }
     
-    func item(for field: F) -> NSMenuItem? {
-        popUp.itemArray.first(where: { ($0.representedObject as? F) === field })
+    func item(for field: Field) -> NSMenuItem? {
+        popUp.itemArray.first(where: { ($0.representedObject as? Field) === field })
     }
     
-    func configure(for db: D, in row: QueryEditorRow<D, B, F>, action: Selector?) {
+    func configure(for db: DB, in row: QueryEditorRow<DB>, action: Selector?) {
         popUp.menu = QueryFieldsMenu(db: db)
         //                               action: action)
         popUp.target = row
         popUp.action = action
     }
     
-    var nextField: F? {
+    var nextField: Field? {
         let currentIndex = popUp.indexOfSelectedItem
         var newIndex = currentIndex + 1
-        var field: F?
+        var field: Field?
         while field == nil,
             newIndex < popUp.itemArray.count {
-                field = popUp.item(at: newIndex)?.representedObject as? F
+                field = popUp.item(at: newIndex)?.representedObject as? Field
                 newIndex += 1
         }
         if field == nil {
             newIndex = 0
             while field == nil,
                 newIndex < currentIndex {
-                    field = popUp.item(at: newIndex)?.representedObject as? F
+                    field = popUp.item(at: newIndex)?.representedObject as? Field
                     newIndex += 1
             }
         }
@@ -93,51 +100,9 @@ struct QueryFieldsPopupManager<D: QueryDB, B: QueryBO, F: QueryField> {
 
 final class QueryFieldsPopup: NSPopUpButton {}
 
-//    var selectedField: F? {
-//        get { selectedItem?.representedObject as? F }
-//        set {
-//            let index = indexOfItem(withRepresentedObject: newValue)
-//            selectItem(at: index)
-//        }
-//    }
-//
-//    func firstItem(for bo: B) -> NSMenuItem? {
-//        itemArray.first(where: { ($0.representedObject as? F)?.bo === bo })
-//    }
-//
-//    func item(for field: F) -> NSMenuItem? {
-//        itemArray.first(where: { ($0.representedObject as? F) === field })
-//    }
-//
-//    func configure(for db: D, in row: QueryEditorRow, action: Selector?) {
-//        menu = QueryFieldsMenu(db: db)
-////                               action: action)
-//        target = row
-//        self.action = action
-//    }
-//
-//    var nextField: F? {
-//        let currentIndex = indexOfSelectedItem
-//        var newIndex = currentIndex + 1
-//        var field: F?
-//        while field == nil,
-//            newIndex < itemArray.count {
-//                field = item(at: newIndex)?.representedObject as? F
-//                newIndex += 1
-//        }
-//        if field == nil {
-//            newIndex = 0
-//            while field == nil,
-//                newIndex < currentIndex {
-//                    field = item(at: newIndex)?.representedObject as? F
-//                    newIndex += 1
-//            }
-//        }
-//        return field
-//    }
-//
-//}
-
+/**
+ Manager for the query operators popup.
+ */
 struct QueryOperatorsPopupManager<F: QueryField> {
     let popUp: QueryOperatorsPopup
     
@@ -188,67 +153,20 @@ struct QueryOperatorsPopupManager<F: QueryField> {
 }
 
 final class QueryOperatorsPopup: NSPopUpButton {}
-//    var selectedOperator: SqlOperator? {
-//        selectedItem?.representedObject as? SqlOperator
-//    }
-//
-//    func configure(for field: F) {
-//        let menu = NSMenu()
-//
-//        operators(for: field.fieldType).forEach { op in
-//            let item = NSMenuItem(title: op.asString, action: nil, keyEquivalent: "")
-//            item.representedObject = op
-//            menu.addItem(item)
-//        }
-//
-//        self.menu = menu
-//    }
-//
-//    func operators(for type: FieldType) -> [SqlOperator] {
-//        switch type {
-//        case .string:
-//            return [.beginsWith,
-//                    .contains,
-//                    .equal,
-//                    .endsWith,
-//                    .notEqual]
-//        case .number:
-//            return [.equal,
-//                    .greater,
-//                    .greaterOrEqual,
-//                    .less,
-//                    .lessOrEqual,
-//                    .notEqual]
-//        case .boolean:
-//            return [.equal, .notEqual]
-//        case .date, .time:
-//            return [.equal,
-//                    .greater,
-//                    .greaterOrEqual,
-//                    .less,
-//                    .lessOrEqual,
-//                    .notEqual]
-//        default:
-//            return []
-//        }
-//    }
-//
-//}
 
-//struct QueryEditorRowManager<D: QueryDB, B: QueryBO, F: QueryField> {
-//    let row: QueryEditorRow
-//    let db: D
-//    let bo: B
-//    let field: F
-//
-//    var queryWhere: QueryWhere<B>? {
-//        row.objectValue as? QueryWhere
-//    }
-//
-//}
-
-public class QueryEditorRow<D: QueryDB, B: QueryBO, F: QueryField>: NSTableCellView {
-
+/**
+ The row of a query editor tableview representing a SQL WHERE clause.
+ */
+class QueryEditorRow<DB: QueryDB>: NSTableCellView {
+    /**
+     The concrete table holding the data.
+     */
+    typealias BO = DB.BO
+    /**
+     The concrete field holding data.
+     */
+    typealias Field = BO.Field
+    
     @IBOutlet weak var controlsStackView: NSStackView!
     @IBOutlet weak var queryFieldsPopup: QueryFieldsPopup!
     @IBOutlet weak var queryOperatorsPopup: QueryOperatorsPopup!
@@ -256,11 +174,16 @@ public class QueryEditorRow<D: QueryDB, B: QueryBO, F: QueryField>: NSTableCellV
     @IBOutlet weak var queryValueTextField: NSTextField!
     @IBOutlet weak var queryValueDatePicker: NSDatePicker!
     @IBOutlet weak var removeRowButton: NSButton!
-    
-    lazy var fieldsPopupManager = QueryFieldsPopupManager<D, B, F>(popUp: queryFieldsPopup)
-    lazy var operatorsPopupManager = QueryOperatorsPopupManager<F>(popUp: queryOperatorsPopup)
 
+    lazy var fieldsPopupManager = QueryFieldsPopupManager<DB>(popUp: queryFieldsPopup)
+    lazy var operatorsPopupManager = QueryOperatorsPopupManager<Field>(popUp: queryOperatorsPopup)
+    /**
+     The remove row function.
+     */
     var removeRow: (() -> ())?
+    /**
+     The add row function.
+     */
     var addRow: (() -> ())?
     @IBAction func removeRowAction(_ sender: Any) {
         removeRow?()
@@ -269,40 +192,34 @@ public class QueryEditorRow<D: QueryDB, B: QueryBO, F: QueryField>: NSTableCellV
         addRow?()
     }
     
-//    var rowManager: QueryEditorRowManager?
-//       guard let queryWhere = objectValue as? QueryWhere
-//        else { fatalError("invalid query where") }
-//
-//        return QueryEditorRowManager<queryWhere.bo.db>(row: self)
-//
-//    }()
-//
-//    var queryWhere: QueryWhere<B>? {
-//        objectValue as? QueryWhere
-//    }
-    
-    override var objectValue: Any? {
+    override public var objectValue: Any? {
         didSet {
-            guard let queryWhere = objectValue as? QueryWhere<B>
+            guard let queryWhere = objectValue as? QueryWhere<BO>
                 else { return }
             if let bo = queryWhere.bo {
+                // configure the popups for the query bo
                 let fieldName = queryWhere.fieldExpression
-                if let field = bo.field(forName: fieldName) as? F,
-//                    let item = queryFieldsPopup.item(for: field) {
+                if let field = bo.field(forName: fieldName),
                     let item = fieldsPopupManager.item(for: field) {
+                    // we got a item in the fields popup matching the Where field, let's select it
                     queryFieldsPopup.select(item)
+                    // update the row as appropriate for the selected field
                     updateRow(for: field)
                 } else {
+                    // no match found, just select the first item in the fields popup matching the query bo
                     queryFieldsPopup.select(fieldsPopupManager.firstItem(for: bo))
-                    if let field = queryFieldsPopup.selectedItem?.representedObject as? F {
+                    if let field = queryFieldsPopup.selectedItem?.representedObject as? Field {
+                        // update the row as appropriate for the selected field
                         updateRow(for: field)
                     }
                 }
             }
         }
     }
-    
-    fileprivate func updateRow(for field: F) {
+    /**
+     Update the row as appropriate for the passed field.
+     */
+    fileprivate func updateRow(for field: Field) {
         operatorsPopupManager.configure(for: field)
         
         switch field.fieldType {
@@ -332,16 +249,16 @@ public class QueryEditorRow<D: QueryDB, B: QueryBO, F: QueryField>: NSTableCellV
     
     @IBAction func fieldAction(_ sender: NSPopUpButton) {
 //        guard let field = sender.representedObject as? QueryField
-        guard let field = sender.selectedItem?.representedObject as? F
+        guard let field = sender.selectedItem?.representedObject as? Field
                 else { return }
         
         updateRow(for: field)
     }
-    
-    func configure(for db: D) {
+    /**
+     Configure the interface for the passed DB.
+     */
+    func configure(for db: DB) {
         fieldsPopupManager.configure(for: db, in: self, action: #selector(fieldAction(_:)))
     }
     
 }
-//
-//class MyQueryEditorRow: QueryEditorRow<DB, BO, Field> {}

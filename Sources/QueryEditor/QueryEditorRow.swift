@@ -157,7 +157,7 @@ final class QueryOperatorsPopup: NSPopUpButton {}
 /**
  The row of a query editor tableview representing a SQL WHERE clause.
  */
-class QueryEditorRow<DB: QueryDB>: NSTableCellView {
+open class QueryEditorRow<DB: QueryDB>: NSTableCellView {
     /**
      The concrete table holding the data.
      */

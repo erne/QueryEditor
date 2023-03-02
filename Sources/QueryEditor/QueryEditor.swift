@@ -45,7 +45,7 @@ public class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDat
         }
     }
     
-    var query: Query<DB>? {
+    public var query: Query<DB>? {
         didSet {
             if query != nil {
                 configureBosPopoup()
@@ -56,7 +56,7 @@ public class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDat
             queryEditorTableView.reloadData()
         }
     }
-    var db: DB? {
+    public var db: DB? {
         query?.db
     }
     

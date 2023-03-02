@@ -81,7 +81,7 @@ public struct BOKey {
 public struct BOType: Equatable {
     let rawValue: String
     
-    init(_ rawValue: String) {
+    public init(_ rawValue: String) {
         self.rawValue = rawValue
     }
     
@@ -94,7 +94,7 @@ public struct BOType: Equatable {
 }
 
 extension BOType {
-    var icon: NSImage? {
+    public var icon: NSImage? {
         return NSImage(named: NSImage.actionTemplateName)
     }
 }
@@ -845,7 +845,7 @@ public class Query<DB: QueryDB>: NSObject, DBQuery {
     /**
      Designated Query initializer.
      */
-    init(db: DB) {
+    public init(db: DB) {
         self.db = db
     }
     

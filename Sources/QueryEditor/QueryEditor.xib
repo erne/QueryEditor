@@ -178,7 +178,6 @@
                                                         </subviews>
                                                         <edgeInsets key="edgeInsets" left="4" right="4" top="0.0" bottom="0.0"/>
                                                         <constraints>
-                                                            <constraint firstItem="0dG-vx-24s" firstAttribute="top" secondItem="aEQ-7w-emp" secondAttribute="top" constant="8" id="3A2-Yd-7KU"/>
                                                             <constraint firstItem="0dG-vx-24s" firstAttribute="centerY" secondItem="aEQ-7w-emp" secondAttribute="centerY" id="NYj-ev-N73"/>
                                                             <constraint firstItem="0dG-vx-24s" firstAttribute="baseline" secondItem="fhQ-gc-DiN" secondAttribute="baseline" id="giy-GN-Sex"/>
                                                         </constraints>

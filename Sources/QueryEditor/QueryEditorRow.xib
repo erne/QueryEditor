@@ -129,6 +129,7 @@
                             </subviews>
                             <edgeInsets key="edgeInsets" left="4" right="4" top="0.0" bottom="0.0"/>
                             <constraints>
+                                <constraint firstAttribute="height" constant="38" id="IBb-ds-SYD"/>
                                 <constraint firstItem="nJ1-40-dNs" firstAttribute="centerY" secondItem="vUc-CT-HSM" secondAttribute="centerY" id="QaD-jd-d1v"/>
                                 <constraint firstItem="nJ1-40-dNs" firstAttribute="baseline" secondItem="iod-iR-SJ8" secondAttribute="baseline" id="S5N-0d-eia"/>
                             </constraints>

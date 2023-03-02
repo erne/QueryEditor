@@ -838,7 +838,7 @@ extension DBQuery {
 /**
  Concrete generic Query class.
  */
-public class Query<DB: QueryDB>: NSObject, DBQuery {
+open class Query<DB: QueryDB>: NSObject, DBQuery {
     public typealias BO = DB.BO
     
     public let db: DB

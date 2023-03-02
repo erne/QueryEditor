@@ -33,7 +33,7 @@ import Collections
 
 final class QueryDataSourcesPopup: NSPopUpButton { }
 
-public class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataSource, NSTableViewDelegate {
+open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataSource, NSTableViewDelegate {
     typealias BO = DB.BO
 
     @IBOutlet weak var bosPopup: NSPopUpButton! //QueryDataSourcesPopup!

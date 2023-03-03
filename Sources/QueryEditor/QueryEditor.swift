@@ -134,7 +134,7 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
         editorRow.configure(for: query!.db)
         editorRow.objectValue = whereExpression
         editorRow.removeRowButton.isHidden = (tableView.numberOfRows == 1)
-
+        // the actions methods
         editorRow.addRow = {
             if let field = editorRow.fieldsPopupManager.nextField,
                 let bo = field.bo as? BO {

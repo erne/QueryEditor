@@ -2,28 +2,34 @@ import XCTest
 @testable import QueryEditor
 
 class DB: QueryDB {
-    let bos: [BO]
+    var bos:[BO] = []
     
-    init(bos: [BO]) {
-        self.bos = bos
-    }
+//    init(bos: [BO]) {
+//        self.bos = bos
+//    }
 }
 
 class BO: NSObject, QueryBO {
 
+    weak var db: DB!
     var type: BOType
     var name: String
     var fields: [Field] = []
     var searchableFields: [Field] { fields }
     var orderFields: [Field] = []
-    
+    var links: [Link] = []
+
     let alias: String
     var displayName: String { NSLocalizedString(name, comment: name) }
     
-    init(name: String, alias: String, type: BOType) {
+    init(in db: DB, name: String, alias: String, type: BOType) {
+        self.db = db
         self.alias = alias.isEmpty ? name : alias
         self.name = name
         self.type = type
+        
+        super.init()
+        db.bos.append(self)
     }
     
     @discardableResult func createField(name: String, type: FieldType) -> Field {
@@ -35,30 +41,6 @@ class BO: NSObject, QueryBO {
     func field(forName name: String) -> Field? {
         searchableFields.first { $0.name == name }
     }
-}
-
-class Artists: BO {
-    lazy var nameField = createField(name: "name", type: .string)
-    lazy var birthdayField = createField(name: "birthday", type: .date)
-    lazy var maleField = createField(name: "male", type: .boolean)
-    lazy var opusField = createField(name: "opus", type: .number)
-
-    init(addAlias: Bool = false) {
-        let alias = addAlias ? "a" : ""
-        super.init(name: "Artists", alias: alias, type: .table)
-
-        [nameField, birthdayField, maleField, opusField].forEach { let _ = $0 }
-        
-//        let _ = createField(name: "name", type: .string)
-//        self.birthdayField = createField(name: "birthday", type: .date)
-//        self.maleField = createField(name: "male", type: .boolean)
-//        self.opusField = createField(name: "opus", type: .number)
-    }
-    
-}
-
-class QueryLink: BO {
-    
 }
 
 class Field: NSObject, QueryField {
@@ -75,11 +57,95 @@ class Field: NSObject, QueryField {
     }
 }
 
+class PointerField: Field, QueryPointerField {
+    let target: BO
+    
+    init(name: String, bo: BO, target: BO) {
+        self.target = target
+        super.init(name: name, type: .link, bo: bo)
+    }
+}
+
+class BOLinker: BO, QueryBOLinker  {
+    var aPtr: PointerField
+    var bPtr: PointerField
+
+    init(inBO1: BO, inBO2: BO) {
+        guard let db = inBO1.db,
+            db === inBO2.db
+            else { fatalError("invalid BOs DB") }
+        
+        let linker = "Linker"
+        let alias = "\(inBO1.alias)\(inBO2.alias)k"
+        let leftLinkStr = inBO1.name.prefix(3)
+        let rightLinkStr = inBO2.name.prefix(3)
+        let name: String = {
+            let string = "\(leftLinkStr)_\(rightLinkStr)_\(linker)"
+            var name = string
+            var i = 0
+            while db.linkNames.contains(name) {
+                i += 1
+                name = "\(string)\(i)"
+            }
+            return name
+        }()
+        
+        
+        let leftPtrName = "\(leftLinkStr)_ptr"
+        aPtr = PointerField(name: leftPtrName,
+                            bo: inBO1,
+                            target: inBO2)
+        let rightPtrName = "\(rightLinkStr)_ptr"
+        bPtr = PointerField(name: rightPtrName,
+                            bo: inBO2,
+                            target: inBO2)
+
+        super.init(in: db, name: name, alias: alias, type: .linker)
+    }
+}
+
+class Link: NSObject, QueryLink {
+    typealias Linker = BOLinker
+    
+    let name: String
+    let branches: [BO]
+    
+    init(name: String, branches: [BO]) {
+        self.name = name
+        self.branches = branches
+    }
+    
+    func isBetween(_ aBO: BO, anotherBO: BO) -> Bool {
+        branches.contains(aBO) && branches.contains(anotherBO)
+    }
+}
+
+class Artists: BO {
+    lazy var nameField = createField(name: "name", type: .string)
+    lazy var birthdayField = createField(name: "birthday", type: .date)
+    lazy var maleField = createField(name: "male", type: .boolean)
+    lazy var opusField = createField(name: "opus", type: .number)
+
+    init(in db: DB, addAlias: Bool = false) {
+        let alias = addAlias ? "a" : ""
+        super.init(in: db, name: "Artists", alias: alias, type: .table)
+
+        [nameField, birthdayField, maleField, opusField].forEach { let _ = $0 }
+        
+//        let _ = createField(name: "name", type: .string)
+//        self.birthdayField = createField(name: "birthday", type: .date)
+//        self.maleField = createField(name: "male", type: .boolean)
+//        self.opusField = createField(name: "opus", type: .number)
+    }
+    
+}
+
 class MyQueryEditorRow: QueryEditorRow<DB> {}
 
 final class QueryEditorTests: XCTestCase {
     func testCreateDB(addAlias: Bool = false) -> DB {
-        let db: DB = DB(bos: [Artists(addAlias: addAlias)])
+        let db: DB = DB() //bos: [Artists(addAlias: addAlias)])
+        db.bos.append(Artists(in: db, addAlias: addAlias))
         let bo = db.bos.first
         XCTAssertEqual(bo?.name, "Artists")
         return db
@@ -116,7 +182,7 @@ final class QueryEditorTests: XCTestCase {
     func queryFrom(addAlias: Bool = false) {
         let db = testCreateDB(addAlias: addAlias)
         guard let bo = db.bos.first else { fatalError("test failed") }
-        XCTAssertEqual(QueryFrom(bo: bo).expression, addAlias ? "[Artists] a" : "[Artists]")
+        XCTAssertEqual(QueryFrom(fromBos: [bo]).expression, addAlias ? "[Artists] a" : "[Artists]")
     }
     
     func testQueryFrom() {
@@ -223,16 +289,28 @@ final class QueryEditorTests: XCTestCase {
             }
         }()
         
-        let expression = QueryWhere(fieldExpression: field.name,
+        let queryWhere = QueryWhere(fieldExpression: field.name,
                                     value: "Dylan",
                                     operator: `operator`,
                                     bo: bo,
-                                    fieldAlias: addFieldAlias ? "string field" : nil).expression
+                                    fieldAlias: addFieldAlias ? "string field" : nil)
+        
+        let expression = queryWhere.expression
         
         print(expression)
 
         XCTAssertEqual(expression,
                        expected)
+        
+        let otherQueryWhere = QueryWhere(fieldExpression: field.name,
+                                    value: "Rolling Stones",
+                                    operator: `operator`,
+                                    bo: bo,
+                                    fieldAlias: addFieldAlias ? "string field" : nil)
+
+        XCTAssertNotEqual(queryWhere,
+                          otherQueryWhere)
+
 
     }
     

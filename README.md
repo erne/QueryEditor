@@ -1,3 +1,3 @@
 # QueryEditor
 
-A description of this package.
+A control to handle a DB query.

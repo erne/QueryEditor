@@ -41,15 +41,25 @@ public protocol QueryDB {
     var bos: [BO] { get }
 }
 
+public extension QueryDB {
+    typealias Linker = BO.Link.Linker
+    var linkers: [Linker] { bos.compactMap { $0 as? Linker } }
+    var linkNames: [String] { linkers.map { $0.name } }
+}
+
 public protocol QueryBO: NSObject {
+    associatedtype DB: QueryDB
     associatedtype Field: QueryField
+    associatedtype Link: QueryLink
     
+    var db: DB! { get }
     var name: String { get }
     var type: BOType { get }
     var alias: String { get }
     var fields: [Field] { get }
     var searchableFields: [Field] { get }
     var orderFields: [Field] { get }
+    var links: [Link] { get }
 }
 
 extension QueryBO {
@@ -60,7 +70,61 @@ extension QueryBO {
     }
 }
 
-public protocol QueryLink: QueryBO {}
+public protocol QueryBOLinker: QueryBO {
+    associatedtype PointerField: QueryPointerField
+    
+    var aPtr: PointerField { get }
+    var bPtr: PointerField { get }
+}
+
+extension QueryBOLinker {
+    func isPointerTo(_ bo: Self) -> Bool {
+        aPtr.target == bo ||
+        bPtr.target == bo
+    }
+    
+    func otherTarget(knownTarget: Self) -> Self {
+        if aPtr.target == knownTarget {
+            return bPtr.target as! Self
+        }
+        return aPtr.target as! Self
+    }
+
+    func ptrField(pointingAt bo: Self) -> PointerField? {
+        if aPtr.target == bo {
+            return aPtr
+        } else if bPtr.target == bo {
+            return bPtr
+        }
+        return nil
+    }
+
+}
+
+public protocol QueryLink: NSObject {
+    associatedtype BO: QueryBO
+    associatedtype Linker: QueryBOLinker
+
+    var name: String { get }
+    var branches: [BO] { get }
+    func isBetween(_ aBO: BO, anotherBO: BO) -> Bool
+}
+
+extension QueryLink {
+    /**
+     Get the BOLinker pointed by this link, if any.
+     */
+    var boLinker: Linker? {
+        branches.compactMap { $0 as? Linker }.first
+    }
+    /**
+     The table pointed by a 2 branches link that is not the passed one.
+     */
+    func otherBO(knownBO: BO) -> BO? {
+        precondition(branches.count == 2, "wrong number of branches in link")
+        return branches.first { $0 != knownBO }
+    }
+}
 
 public protocol QueryField: NSObject {
     associatedtype BO: QueryBO
@@ -69,6 +133,10 @@ public protocol QueryField: NSObject {
     var name: String { get }
     var fieldType: FieldType { get }
     var label: String { get }
+}
+
+public protocol QueryPointerField: QueryField {
+    var target: BO { get }
 }
 
 public struct BOKey {
@@ -205,9 +273,22 @@ extension QueryFieldExpression {
         }()
     }
     
-    public static func ==(lhs: Self, rhs: Self) -> Bool {
-        return lhs.bo?.name.uppercased() == rhs.bo?.name.uppercased() &&
+    static func areEqual(lhs: Self, rhs: Self) -> Bool {
+        return lhs.bo == rhs.bo &&
             lhs.fieldExpression.uppercased() == rhs.fieldExpression.uppercased()
+    }
+    
+    public static func ==(lhs: Self, rhs: Self) -> Bool {
+        return areEqual(lhs: lhs, rhs: rhs)
+    }
+    
+    func hashMe(into hasher: inout Hasher) {
+        hasher.combine(bo)
+        hasher.combine(fieldExpression.uppercased())
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hashMe(into: &hasher)
     }
 }
 /**
@@ -247,7 +328,7 @@ public struct QuerySelect<BO: QueryBO>: QueryFieldExpression {
  A concrete struct to represent a SQL FROM expression taken from a list of BOs.
  */
 public struct QueryFrom<BO: QueryBO>: QueryExpression {
-    public let bo: BO?
+    public var bo: BO? { fromBos.first }
     /**
      The BOs needed to satisfy joins and extract data.
      */
@@ -257,12 +338,13 @@ public struct QueryFrom<BO: QueryBO>: QueryExpression {
      - parameter bo: The required bo in the FROM sql clause, if any.
      - parameter otherFromBos: Other required BOs.
      */
-    public init(bo: BO? = nil, otherFromBos: OrderedSet<BO> = []) {
-        self.bo = bo
-        if let bo = bo {
-            fromBos.append(bo)
-        }
-        fromBos.append(contentsOf: otherFromBos)
+    public init(fromBos: OrderedSet<BO>) { //} (bo: BO? = nil, otherFromBos: OrderedSet<BO> = []) {
+//        self.bo = bo
+        self.fromBos = fromBos
+//        if let bo = bo {
+//            fromBos.append(bo)
+//        }
+//        fromBos.append(contentsOf: otherFromBos)
     }
     /**
      The string to be used in a SQL query to define which tables are to be searched.
@@ -276,6 +358,92 @@ public struct QueryFrom<BO: QueryBO>: QueryExpression {
         .joined(separator: ", ")
     }
 }
+
+/**
+A concrete struct to represent a SQL from expression taken from a list of links.
+*/
+public struct QueryFromLinks<BO: QueryBO, Link: QueryLink>: QueryExpression {
+    public let bo: BO?
+    /**
+     Static join type to avoid performance lag when trying to compute a more link-customized one.
+     */
+    let joinType: JoinType
+    /**
+     Designated initializer
+     */
+    init(bo: BO? = nil, links: OrderedSet<Link>, joinType: JoinType = .inner) {
+        self.joinType = joinType
+        self.bo = bo
+        self.links = links
+    }
+    
+    var links: OrderedSet<Link>
+    
+    public var expression: String {
+        var processedBos = [BO]()
+        var join = joinType.stringRepresentation
+
+        func joinString(for link: Link, bo: BO) -> String? {
+            guard !processedBos.contains(bo)
+                else { return nil }
+
+//            let startTime = Date()
+
+            processedBos.append(bo)
+
+//            let duration = Date().timeIntervalSince(startTime)
+//            print("Join string processing duration: \(duration)")
+
+            return "\(join) [\(bo.name)] \(bo.alias) ON \(link.name)"
+        }
+
+        var links = self.links
+        guard !links.isEmpty
+            else { return "" }
+        
+        let firstLink = links.removeFirst()
+        var string = ""
+        var strings: [String] = []
+
+//        let startTime = Date()
+        
+        // root from expression in first branch of first link
+        guard var branches = firstLink.branches as? [BO]
+            else { fatalError("Invalid BO in link") }
+        
+//        guard let bo = firstLink.branches.first as? BO
+//            else { fatalError("Invalid BO in link") }
+        let bo = branches.removeFirst()
+        
+        string = "[\(bo.name)!)] \(bo.alias)"
+        strings.append(string)
+        processedBos.append(bo)
+        // process all other branches
+        branches.forEach { (branch) in
+            guard let joinString = joinString(for: firstLink, bo: branch)
+                else { return }
+            strings.append(joinString )
+        }
+        
+        links.forEach { (link) in
+            guard let branches = link.branches as? [BO]
+                else { fatalError("Invalid BO in link") }
+            branches.forEach { (branch) in
+                guard let joinString = joinString(for: link, bo: branch)
+                    else { return }
+                strings.append(joinString )
+            }
+        }
+
+//        let duration = Date().timeIntervalSince(startTime)
+//        print("Route links processing duration: \(duration)")
+
+        return strings.joined(separator: "\n") //"FROM \(strings.joined(separator: "\n"))"
+    }
+
+    
+}
+
 /**
  A concrete struct to represent a SQL GROUP expression.
 */
@@ -340,6 +508,17 @@ public struct QueryOrder<BO: QueryBO>: QueryFieldExpression {
         return orderString + descendingString
 
     }
+    
+    public static func ==(lhs: Self, rhs: Self) -> Bool {
+        return areEqual(lhs: lhs, rhs: rhs) &&
+            lhs.descending == rhs.descending
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hashMe(into: &hasher)
+        hasher.combine(descending)
+    }
+
 }
 /**
  Supported logical operators in query expressions, currently supported are 'AND', 'AND NOT', 'OR', 'OR NOT'.
@@ -587,6 +766,20 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
         }
     }
     
+    public static func ==(lhs: Self, rhs: Self) -> Bool {
+        return areEqual(lhs: lhs, rhs: rhs) &&
+            lhs.value == rhs.value &&
+            lhs.operator == rhs.operator &&
+            lhs.logical == rhs.logical
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hashMe(into: &hasher)
+        hasher.combine(value)
+        hasher.combine(`operator`)
+        hasher.combine(logical)
+    }
+
 }
 /**
  Supported SQL JOIN types.
@@ -625,7 +818,7 @@ public protocol DBQuery: class {
     associatedtype DB: QueryDB
     // The concrete table holding the data
     associatedtype BO: QueryBO
-//    associatedtype Link: QueryLink
+    associatedtype Link: QueryLink
     /**
      The database managing the data.
      */
@@ -662,11 +855,15 @@ public protocol DBQuery: class {
     /**
      The links directly joining the BOs referred by the query.
      */
-//    var directLinks: OrderedSet<Link> { get set }
+    var directLinks: OrderedSet<Link> { get set }
     /**
      The expressions defining a SQL FROM clause.
      */
     var fromExpressions: OrderedSet<QueryFrom<BO>> { get set }
+    /**
+     The expressions defining a SQL FROM clause.
+     */
+    var fromLinksExpressions: OrderedSet<QueryFromLinks<BO, Link>> { get set }
     /**
      The expressions defining a SQL WHERE clause.
      */
@@ -683,7 +880,10 @@ public protocol DBQuery: class {
      The expressions defining a SQL ORDER BY clause.
      */
     var orderBy: OrderedSet<QueryOrder<BO>> { get set }
-
+    /**
+     The whole SQL string.
+     */
+//    var sqlString: String? { get }
 }
 
 extension DBQuery {
@@ -757,7 +957,7 @@ extension DBQuery {
     private func setFromBos(root: BO, required: OrderedSet<BO>) -> Bool {
         if required.count == 1 {
             // 1 bo simple query
-            fromExpressions.append(QueryFrom(otherFromBos: required + linkerBos))
+            fromExpressions.append(QueryFrom(fromBos: required + linkerBos))
         }
 
         return !(fromExpressions.isEmpty) // && fromLinksExpressions.isEmpty)
@@ -804,7 +1004,7 @@ extension DBQuery {
     /**
      The whole SQL string.
      */
-    var sqlString: String? {
+    public var sqlString: String? {
         guard setFromBos(),
             let selectClause = selectFieldsString
             else { return nil }
@@ -840,6 +1040,7 @@ extension DBQuery {
  */
 open class Query<DB: QueryDB>: NSObject, DBQuery {
     public typealias BO = DB.BO
+    public typealias Link = BO.Link
     
     public let db: DB
     /**
@@ -860,9 +1061,9 @@ open class Query<DB: QueryDB>: NSObject, DBQuery {
     public var mainBos = OrderedSet<BO>()
     public var fromBos = OrderedSet<BO>()
     public var linkerBos = OrderedSet<BO>()
-//    public var directLinks = OrderedSet<Link>()
+    public var directLinks = OrderedSet<Link>()
     public var fromExpressions = OrderedSet<QueryFrom<BO>>()
-//    var fromLinksExpressions = OrderedSet<QueryFromLinks>()
+    public var fromLinksExpressions = OrderedSet<QueryFromLinks<BO, Link>>()
     public var whereExpressions = OrderedSet<QueryWhere<BO>>()
     public var selectFields = OrderedSet<QuerySelect<BO>>()
     public var groupFields = OrderedSet<QueryGroup<BO>>()

@@ -71,6 +71,9 @@
                                             </items>
                                         </menu>
                                     </popUpButtonCell>
+                                    <connections>
+                                        <action selector="action:" target="-2" id="XD8-sQ-Fqa"/>
+                                    </connections>
                                 </popUpButton>
                                 <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="pB5-fa-lXc" customClass="QueryOperatorsPopup" customModule="Draggable_Grid_View" customModuleProvider="target">
                                     <rect key="frame" x="74" y="9" width="62" height="19"/>
@@ -85,6 +88,9 @@
                                             </items>
                                         </menu>
                                     </popUpButtonCell>
+                                    <connections>
+                                        <action selector="action:" target="-2" id="SPA-OY-cHe"/>
+                                    </connections>
                                 </popUpButton>
                                 <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="7pA-Ne-a70">
                                     <rect key="frame" x="144" y="9" width="62" height="19"/>
@@ -99,11 +105,13 @@
                                             </items>
                                         </menu>
                                     </popUpButtonCell>
+                                    <connections>
+                                        <action selector="action:" target="-2" id="Dpf-nA-WIT"/>
+                                    </connections>
                                 </popUpButton>
                                 <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="nJ1-40-dNs">
-                                    <rect key="frame" x="214" y="9" width="200" height="21"/>
+                                    <rect key="frame" x="214" y="10" width="200" height="19"/>
                                     <constraints>
-                                        <constraint firstAttribute="height" constant="21" id="ExR-TW-pEW"/>
                                         <constraint firstAttribute="width" constant="200" id="Uu4-ok-cal"/>
                                     </constraints>
                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" id="HJQ-jD-1ID">
@@ -111,9 +119,12 @@
                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                     </textFieldCell>
+                                    <connections>
+                                        <action selector="action:" target="-2" id="vop-7U-PWz"/>
+                                    </connections>
                                 </textField>
                                 <datePicker verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="iod-iR-SJ8">
-                                    <rect key="frame" x="422" y="9" width="100" height="27"/>
+                                    <rect key="frame" x="422" y="8" width="100" height="27"/>
                                     <constraints>
                                         <constraint firstAttribute="width" constant="97" id="UYB-1f-3wy"/>
                                     </constraints>
@@ -125,14 +136,12 @@
                                         <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                     </datePickerCell>
+                                    <connections>
+                                        <action selector="action:" target="-2" id="wxn-bi-6Wu"/>
+                                    </connections>
                                 </datePicker>
                             </subviews>
                             <edgeInsets key="edgeInsets" left="4" right="4" top="0.0" bottom="0.0"/>
-                            <constraints>
-                                <constraint firstAttribute="height" constant="38" id="IBb-ds-SYD"/>
-                                <constraint firstItem="nJ1-40-dNs" firstAttribute="centerY" secondItem="vUc-CT-HSM" secondAttribute="centerY" id="QaD-jd-d1v"/>
-                                <constraint firstItem="nJ1-40-dNs" firstAttribute="baseline" secondItem="iod-iR-SJ8" secondAttribute="baseline" id="S5N-0d-eia"/>
-                            </constraints>
                             <visibilityPriorities>
                                 <integer value="1000"/>
                                 <integer value="1000"/>

@@ -120,6 +120,8 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
 
     // MARK: - TableView Datasource
     
+    var disableAction = false
+    
     public func tableView(_ tableView: NSTableView, writeRowsWith rowIndexes: IndexSet, to pboard: NSPasteboard) -> Bool {
         return writeRows(of: tableView, at: rowIndexes, to: pboard)
     }
@@ -163,7 +165,7 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
         editorRow.addRow = { row in
             if let field = editorRow.fieldsPopupManager.nextField,
                 let bo = field.bo as? BO {
-                let op: SqlOperator = {
+                let op: QueryOperator = {
                     switch field.fieldType {
                     case .string:
                         return .contains
@@ -171,8 +173,16 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
                         return .equal
                     }
                 }()
+                let value: AnyHashable? = {
+                    switch field.fieldType {
+                    case .date:
+                        return Date()
+                    default:
+                        return nil
+                    }
+                }()
                 let whereExpression = QueryWhere<BO>(fieldExpression: field.name,
-                                                     value: nil,
+                                                     value: value,
                                                      operator: op,
                                                      logical: .and(assertive: true),
                                                      bo: bo)
@@ -185,26 +195,24 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
                                                      makeIfNecessary: false) as? QueryEditorRow<DB> {
                         rowView.removeRowButton.isHidden = false
                     }
-                    ((row + 1)..<tableView.numberOfRows).enumerated().forEach { (_, index) in
-                        guard let editorRow = tableView.rowView(atRow: index, makeIfNecessary: true)?.subviews.first as? QueryEditorRow<DB>
-                            else { return }
-                        editorRow.index = index
-                    }
+                    self.updateRowIndexes(in: tableView, startingAt: row + 1)
                     if self.liveSearch {
                         self.doAction()
                     }
                 }
             }
         }
-        editorRow.removeRow = { row in
+        editorRow.removeRow = { [weak self] row in
+            guard let self = self
+                else { return } //fatalError("invalid where expression") }
+            
+            self.disableAction = true
+            defer { self.disableAction = false }
+            
             self.query?.whereExpressions.remove(at: row)
             tableView.removeRows(at: IndexSet(integer: row),
                                  withAnimation: .effectFade)
-            (row..<tableView.numberOfRows).enumerated().forEach { (_, index) in
-                guard let editorRow = tableView.rowView(atRow: index, makeIfNecessary: true)?.subviews.first as? QueryEditorRow<DB>
-                    else { return }
-                editorRow.index = index
-            }
+            self.updateRowIndexes(in: tableView, startingAt: row)
             if tableView.numberOfRows == 1,
                 let rowView = tableView.view(atColumn: 0,
                                              row: 0,
@@ -217,17 +225,18 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
         }
         editorRow.action = { [weak self] row, queryWhere in
             guard let self = self,
+                !self.disableAction,
                 let query = self.query
-//                let whereExpression = editorRow.objectValue as? QueryWhere<BO>
                 else { return } //fatalError("invalid where expression") }
-            print(queryWhere.expression)
-            print(query.whereExpressions.count)
-            if query.whereExpressions[row] == queryWhere,
-            !(query.whereExpressions[row].expression == queryWhere.expression) {
-                print("\(query.whereExpressions[row].expression) should be equal to \(queryWhere.expression)")
-            }
+            
+//            print(queryWhere.expression)
+//            print(query.whereExpressions.count)
+//            if query.whereExpressions[row] == queryWhere,
+//            !(query.whereExpressions[row].expression == queryWhere.expression) {
+//                print("\(query.whereExpressions[row].expression) should be equal to \(queryWhere.expression)")
+//            }
             query.whereExpressions[row] = queryWhere
-            print(query.whereExpressions[row].expression)
+//            print(query.whereExpressions[row].expression)
             if self.liveSearch {
                 self.doAction()
             }
@@ -236,14 +245,39 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
         return editorRow
     }
     
-    public func tableView(_ tableView: NSTableView, shouldMoveRow oldIndex: Int, to newIndex: Int) -> Bool {
-        guard let editorRow = tableView.rowView(atRow: oldIndex, makeIfNecessary: true)?.subviews.first as? QueryEditorRow<DB>
-            else { return false }
-        editorRow.index = newIndex
-        return true
+    func updateRowIndexes(in tableView: NSTableView, startingAt startIndex: Int, endingAt endIndex: Int? = nil) {
+        let endIndex = endIndex ?? tableView.numberOfRows - 1
+        
+        guard startIndex < endIndex else { return }
+        
+        (startIndex...endIndex).enumerated().forEach { (_, index) in
+            guard let editorRow = tableView.rowView(atRow: index, makeIfNecessary: true)?.subviews.first as? QueryEditorRow<DB>
+                else { return }
+            editorRow.index = index
+        }
     }
     
+//    public func tableView(_ tableView: NSTableView, shouldMoveRow oldIndex: Int, to newIndex: Int) -> Bool {
+////        guard let editorRow = tableView.rowView(atRow: oldIndex, makeIfNecessary: true)?.subviews.first as? QueryEditorRow<DB>
+////            else { return false }
+//        if newIndex > oldIndex {
+//            updateRowIndexes(in: tableView, startingAt: oldIndex)
+//        } else {
+//            updateRowIndexes(in: tableView, startingAt: 0, endingAt: newIndex)
+//        }
+//
+////        editorRow.index = newIndex
+////
+////        updateRowIndexes(in: tableView, startingAt: index + 1)
+//        return true
+//    }
+    
     public func tableView(_ tableView: NSTableView, didMoveRow oldIndex: Int, to newIndex: Int) {
+        if newIndex > oldIndex {
+            updateRowIndexes(in: tableView, startingAt: oldIndex)
+        } else {
+            updateRowIndexes(in: tableView, startingAt: newIndex, endingAt: oldIndex)
+        }
         if self.liveSearch {
             self.doAction()
         }

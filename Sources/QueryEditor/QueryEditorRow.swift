@@ -106,13 +106,12 @@ final class QueryFieldsPopup: NSPopUpButton {}
 struct QueryOperatorsPopupManager<F: QueryField> {
     let popUp: QueryOperatorsPopup
     
-    var selectedOperator: SqlOperator? {
+    var selectedOperator: QueryOperator? {
         get {
-            popUp.selectedItem?.representedObject as? SqlOperator
+            popUp.selectedItem?.representedObject as? QueryOperator
         }
         set {
-            guard let item = popUp.itemArray.first(where: { ($0.representedObject as? SqlOperator) == newValue })
-            else { fatalError("invalid operator")}
+            let item = popUp.itemArray.first(where: { ($0.representedObject as? QueryOperator) == newValue }) ?? popUp.itemArray.first
             popUp.select(item)
         }
     }
@@ -120,7 +119,7 @@ struct QueryOperatorsPopupManager<F: QueryField> {
     func configure(for field: F) {
         let menu = NSMenu()
         
-        operators(for: field.fieldType).forEach { op in
+        operators(for: field).forEach { op in
             let item = NSMenuItem(title: op.asString, action: nil, keyEquivalent: "")
             item.representedObject = op
             menu.addItem(item)
@@ -129,37 +128,25 @@ struct QueryOperatorsPopupManager<F: QueryField> {
         popUp.menu = menu
     }
     
-    func operators(for type: FieldType) -> [SqlOperator] {
-        switch type {
-        case .string:
-            return [.beginsWith,
-                    .contains,
-                    .equal,
-                    .endsWith,
-                    .notEqual]
-        case .number:
-            return [.equal,
-                    .greater,
-                    .greaterOrEqual,
-                    .less,
-                    .lessOrEqual,
-                    .notEqual]
-        case .boolean:
-            return [.equal, .notEqual]
-        case .date, .time:
-            return [.equal,
-                    .greater,
-                    .greaterOrEqual,
-                    .less,
-                    .lessOrEqual,
-                    .notEqual]
-        default:
-            return []
-        }
+    func operators(for field: F) -> [QueryOperator] {
+        field.allowedOperators ?? field.fieldType.allowedOperators
     }
 }
 
 final class QueryOperatorsPopup: NSPopUpButton {}
+
+final class QueryValuesPopup: NSPopUpButton {
+    weak var delegate: NSControlTextEditingDelegate?
+    
+    override var objectValue: Any? {
+        get {
+            selectedItem?.representedObject
+        }
+        set {
+            super.objectValue = indexOfItem(withRepresentedObject: newValue)
+        }
+    }
+}
 
 enum QueryEditorRowElement {
     case field
@@ -170,7 +157,7 @@ enum QueryEditorRowElement {
 /**
  The row of a query editor tableview representing a SQL WHERE clause.
  */
-open class QueryEditorRow<DB: QueryDB>: NSTableCellView {
+open class QueryEditorRow<DB: QueryDB>: NSTableCellView, NSTextFieldDelegate, NSDatePickerCellDelegate {
     /**
      The concrete table holding the data.
      */
@@ -182,12 +169,31 @@ open class QueryEditorRow<DB: QueryDB>: NSTableCellView {
     
     var index = 0
     
+    var internalAction = false
+    
     @IBOutlet weak var controlsStackView: NSStackView!
     @IBOutlet weak var queryFieldsPopup: QueryFieldsPopup!
     @IBOutlet weak var queryOperatorsPopup: QueryOperatorsPopup!
-    @IBOutlet weak var queryValuesPopup: NSPopUpButton!
-    @IBOutlet weak var queryValueTextField: NSTextField!
-    @IBOutlet weak var queryValueDatePicker: NSDatePicker!
+    @IBOutlet weak var queryValuesPopup: QueryValuesPopup! {
+        didSet { queryValuesPopup.delegate = self }
+    }
+    @IBOutlet weak var queryValueTextField: NSTextField! {
+        didSet { queryValueTextField.delegate = self }
+    }
+    public func control(_ control: NSControl, isValidObject obj: Any?) -> Bool {
+        guard let value = obj as? AnyHashable else { return false }
+        return validateValue(value)
+    }
+    @IBOutlet weak var queryValueDatePicker: NSDatePicker! {
+        didSet { queryValueDatePicker.delegate = self }
+    }
+    public func datePickerCell(_ datePickerCell: NSDatePickerCell,
+                        validateProposedDateValue proposedDateValue: AutoreleasingUnsafeMutablePointer<NSDate>,
+                        timeInterval proposedTimeInterval: UnsafeMutablePointer<TimeInterval>?) {
+        if !validateValue(proposedDateValue.pointee) {
+            proposedDateValue.pointee = datePickerCell.dateValue as NSDate
+        }
+    }
     @IBOutlet weak var removeRowButton: NSButton!
 
     lazy var fieldsPopupManager = QueryFieldsPopupManager<DB>(popUp: queryFieldsPopup)
@@ -204,7 +210,21 @@ open class QueryEditorRow<DB: QueryDB>: NSTableCellView {
     
     var action: ((Int, QueryWhere<BO>) -> ())?
     
+    var validate: ((QueryWhere<BO>) -> (Bool))?
+
+    func validateValue(_ value: AnyHashable?) -> Bool {
+        guard let validate = validate,
+            let queryWhere = queryWhere(with: value),
+            !validate(queryWhere)
+        else { return true }
+        return false
+    }
+    
     private var computedQueryWhere: QueryWhere<BO>? {
+        queryWhere(with: value)
+    }
+    
+    private func queryWhere(with value: AnyHashable?) -> QueryWhere<BO>? {
         guard let field = fieldsPopupManager.selectedField,
             let bo = field.bo as? BO,
             let op = operatorsPopupManager.selectedOperator
@@ -232,10 +252,18 @@ open class QueryEditorRow<DB: QueryDB>: NSTableCellView {
         }
     }
     
-     @IBAction func action(_ sender: Any) {
+    @IBAction func action(_ sender: Any) {
+        internalAction = true
+        defer { internalAction = false }
         guard let queryWhere = queryWhere
             else { return }
         print(queryWhere.expression)
+        switch sender {
+        case is QueryFieldsPopup:
+            updateRow(for: fieldsPopupManager.selectedField!)
+        default:
+            break
+        }
         action?(index, queryWhere)
     }
     
@@ -248,7 +276,8 @@ open class QueryEditorRow<DB: QueryDB>: NSTableCellView {
     
     override public var objectValue: Any? {
         didSet {
-            guard let queryWhere = objectValue as? QueryWhere<BO>
+            guard !internalAction,
+                let queryWhere = objectValue as? QueryWhere<BO>
                 else { return }
             if let bo = queryWhere.bo {
                 // configure the popups for the query bo
@@ -278,31 +307,50 @@ open class QueryEditorRow<DB: QueryDB>: NSTableCellView {
      Update the row as appropriate for the passed field.
      */
     fileprivate func updateRow(for field: Field) {
+        let currentValue = field.fieldType.properValue(from: value)
+        let currentOperator = operatorsPopupManager.selectedOperator
         operatorsPopupManager.configure(for: field)
+        operatorsPopupManager.selectedOperator = currentOperator
         
-        switch field.fieldType {
-        case .string:
-            controlsStackView.setVisibilityPriority(.mustHold, for: queryValueTextField)
-            controlsStackView.setVisibilityPriority(.notVisible, for: queryValuesPopup)
-            controlsStackView.setVisibilityPriority(.notVisible, for: queryValueDatePicker)
-        case .number:
-            controlsStackView.setVisibilityPriority(.mustHold, for: queryValueTextField)
-            controlsStackView.setVisibilityPriority(.notVisible, for: queryValuesPopup)
-            controlsStackView.setVisibilityPriority(.notVisible, for: queryValueDatePicker)
-        case .boolean:
+        if let values = field.presetValues {
             queryValuesPopup.removeAllItems()
-            queryValuesPopup.addItem(withTitle: "true")
-            queryValuesPopup.addItem(withTitle: "false")
+            values.forEach {
+                let item = NSMenuItem(title: $0.description, action: nil, keyEquivalent: "")
+                item.representedObject = $0
+                queryValuesPopup.menu?.addItem(item)
+            }
             controlsStackView.setVisibilityPriority(.mustHold, for: queryValuesPopup)
             controlsStackView.setVisibilityPriority(.notVisible, for: queryValueTextField)
             controlsStackView.setVisibilityPriority(.notVisible, for: queryValueDatePicker)
-        case .date, .time:
-            controlsStackView.setVisibilityPriority(.mustHold, for: queryValueDatePicker)
-            controlsStackView.setVisibilityPriority(.notVisible, for: queryValueTextField)
-            controlsStackView.setVisibilityPriority(.notVisible, for: queryValuesPopup)
-        default:
-            break
+        } else {
+            queryValueTextField.formatter = field.formatter
+            switch field.fieldType {
+            case .string:
+                controlsStackView.setVisibilityPriority(.mustHold, for: queryValueTextField)
+                controlsStackView.setVisibilityPriority(.notVisible, for: queryValuesPopup)
+                controlsStackView.setVisibilityPriority(.notVisible, for: queryValueDatePicker)
+            case .number:
+                controlsStackView.setVisibilityPriority(.mustHold, for: queryValueTextField)
+                controlsStackView.setVisibilityPriority(.notVisible, for: queryValuesPopup)
+                controlsStackView.setVisibilityPriority(.notVisible, for: queryValueDatePicker)
+            case .boolean:
+                queryValuesPopup.removeAllItems()
+                queryValuesPopup.addItem(withTitle: "true")
+                queryValuesPopup.addItem(withTitle: "false")
+                controlsStackView.setVisibilityPriority(.mustHold, for: queryValuesPopup)
+                controlsStackView.setVisibilityPriority(.notVisible, for: queryValueTextField)
+                controlsStackView.setVisibilityPriority(.notVisible, for: queryValueDatePicker)
+            case .date, .time:
+                controlsStackView.setVisibilityPriority(.mustHold, for: queryValueDatePicker)
+                controlsStackView.setVisibilityPriority(.notVisible, for: queryValueTextField)
+                controlsStackView.setVisibilityPriority(.notVisible, for: queryValuesPopup)
+            default:
+                break
+            }
         }
+
+        value = currentValue
+        
     }
     
 //    @IBAction func fieldAction(_ sender: NSPopUpButton) {

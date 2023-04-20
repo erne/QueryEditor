@@ -12,6 +12,15 @@ import Collections
 import StringExtensions
 import DateExtensions
 
+// MARK: - Values handling
+
+public func stringValue(_ value: Any?) -> String? {
+    guard let value = value else { return nil }
+    if let string = value as? String { return string }
+    if let number = value as? NSNumber { return number.stringValue }
+
+    return nil
+}
 public func boolValue(_ value: Any?) -> Bool? {
     guard let value = value else { return nil }
     if let bool = value as? Bool { return bool }
@@ -35,6 +44,9 @@ public func dateValue(_ value: Any?) -> Date? {
     return nil
 }
 
+/**
+ Protocol defining the database to be queried.
+ */
 public protocol QueryDB {
     associatedtype BO: QueryBO
     
@@ -46,7 +58,9 @@ public extension QueryDB {
     var linkers: [Linker] { bos.compactMap { $0 as? Linker } }
     var linkNames: [String] { linkers.map { $0.name } }
 }
-
+/**
+ Protocol defining the base object (BO aka table) of database.
+ */
 public protocol QueryBO: NSObject {
     associatedtype DB: QueryDB
     associatedtype Field: QueryField
@@ -54,7 +68,7 @@ public protocol QueryBO: NSObject {
     
     var db: DB! { get }
     var name: String { get }
-    var type: BOType { get }
+    var type: QueryBOType { get }
     var alias: String { get }
     var fields: [Field] { get }
     var searchableFields: [Field] { get }
@@ -63,13 +77,15 @@ public protocol QueryBO: NSObject {
 }
 
 extension QueryBO {
-    var recIdAlias: String { "\(alias)_\(BOKey.recId)" }
+    var recIdAlias: String { "\(alias)_\(QueryBOKey.recId)" }
     var displayName: String { NSLocalizedString(name, comment: name) }
     func field(forName name: String) -> Field? {
         searchableFields.first { $0.name == name }
     }
 }
-
+/**
+ Protocol defining the BO used to establish a many to many link between BOs.
+ */
 public protocol QueryBOLinker: QueryBO {
     associatedtype PointerField: QueryPointerField
     
@@ -100,7 +116,9 @@ extension QueryBOLinker {
     }
 
 }
-
+/**
+ Protocol defining a link between BOs.
+ */
 public protocol QueryLink: NSObject {
     associatedtype BO: QueryBO
     associatedtype Linker: QueryBOLinker
@@ -125,49 +143,62 @@ extension QueryLink {
         return branches.first { $0 != knownBO }
     }
 }
-
+/**
+ Protocol defining the field holding data in the BO.
+ */
 public protocol QueryField: NSObject {
     associatedtype BO: QueryBO
     
     var bo: BO { get }
     var name: String { get }
-    var fieldType: FieldType { get }
+    var fieldType: QueryFieldType { get }
     var label: String { get }
+    var presetValues: [AnyHashable]? { get }
+    var formatter: Formatter? { get }
+    var allowedOperators: [QueryOperator]? { get }
 }
-
+/**
+ Protocol defining the field pointing to another BO.
+ */
 public protocol QueryPointerField: QueryField {
     var target: BO { get }
 }
-
-public struct BOKey {
+/**
+ Useful keys to query a BO.
+ */
+public struct QueryBOKey {
     static let boName = "boName"
     static let recId = "recId"
     static let linked = "linked"
     static let deleted = "deleted"
 }
-
-public struct BOType: Equatable {
+/**
+ Available BO types.
+ */
+public struct QueryBOType: Equatable {
     let rawValue: String
     
     public init(_ rawValue: String) {
         self.rawValue = rawValue
     }
     
-    public static var table = BOType("table")
-    public static var linker = BOType("linker")
+    public static var table = QueryBOType("table")
+    public static var linker = QueryBOType("linker")
     
     var localizedStringRepresentation: String {
         return NSLocalizedString(rawValue, comment: rawValue).capitalized(with: Locale.current)
     }
 }
 
-extension BOType {
+extension QueryBOType {
     public var icon: NSImage? {
         return NSImage(named: NSImage.actionTemplateName)
     }
 }
-
-public enum FieldType: String {
+/**
+ Types a field can represent.
+ */
+public enum QueryFieldType: String {
     case string
     case date
     case time
@@ -175,14 +206,67 @@ public enum FieldType: String {
     case number
     case link
     case undefined
+    /**
+     Get a properly cast value from a generic Any.
+     */
+    func properValue(from value: AnyHashable?) -> AnyHashable? {
+        switch self {
+        case .string:
+            return stringValue(value)
+        case .date, .time:
+            return dateValue(value)
+        case .boolean:
+            return boolValue(value)
+        case .number:
+            return numberValue(value)
+        default:
+            return value
+        }
+    }
+    /**
+     Get an array of operators fitting the type.
+     */
+    var allowedOperators: [QueryOperator] {
+        switch self {
+        case .string:
+            return [.beginsWith,
+                    .contains,
+                    .equal,
+                    .endsWith,
+                    .notEqual,
+                    .like,
+                    .notLike]
+        case .number:
+            return [.equal,
+                    .greater,
+                    .greaterOrEqual,
+                    .less,
+                    .lessOrEqual,
+                    .notEqual,
+                    .like,
+                    .notLike]
+        case .boolean:
+            return [.equal, .notEqual]
+        case .date, .time:
+            return [.equal,
+                    .greater,
+                    .greaterOrEqual,
+                    .less,
+                    .lessOrEqual,
+                    .notEqual]
+        default:
+            return []
+        }
+    }
+
 }
 
-extension FieldType: CaseIterable {}
+extension QueryFieldType: CaseIterable {}
 
 /**
  All possible operators a query can handle.
  */
-public enum SqlOperator: String {
+public enum QueryOperator: String {
     case beginsWith = "|="
     case equal = "="
     case contains = "|=|"
@@ -193,17 +277,18 @@ public enum SqlOperator: String {
     case lessOrEqual = "<="
     case notEqual = "<>"
     case like = "LIKE"
+    case notLike = "NOT LIKE"
     case regex = "REGEX"
     
 }
 
-extension SqlOperator: CaseIterable {
+extension QueryOperator: CaseIterable {
     var asString: String {
         switch self {
         case .beginsWith:
             return NSLocalizedString("begins with", comment: "begins with")
         case .equal:
-            return NSLocalizedString("equals", comment: "equals")
+            return NSLocalizedString("is", comment: "is") //("equals", comment: "equals")
         case .contains:
             return NSLocalizedString("contains", comment: "contains")
         case .endsWith:
@@ -217,9 +302,11 @@ extension SqlOperator: CaseIterable {
         case .lessOrEqual:
             return NSLocalizedString("is lesser or equal than", comment: "is lesser or equal than")
         case .notEqual:
-            return NSLocalizedString("is not equal to", comment: "is not equal to")
+            return NSLocalizedString("is not", comment: "is not") //("is not equal to", comment: "is not equal to")
         case .like:
             return NSLocalizedString("like", comment: "like")
+        case .notLike:
+            return NSLocalizedString("not like", comment: "not like")
         case .regex:
             return NSLocalizedString("regex", comment: "regex")
         }
@@ -240,10 +327,13 @@ public protocol QueryExpression: Hashable {
      The BO that the expression is related to.
      */
     var bo: BO? { get }
+    /**
+     The query expression, rendered as a string:
+     */
     var expression: String { get }
 }
 /**
- Protocol to represent a field expression. It can have an alias to name the output field.
+ Protocol for an expression that represents a BO field. It can have an alias to rename the output field.
  */
 public protocol QueryFieldExpression: QueryExpression {
     var fieldExpression: String { get }
@@ -272,21 +362,29 @@ extension QueryFieldExpression {
             return bo.recIdAlias // return a standard recid alias
         }()
     }
-    
+    /**
+     Check two field expressions for equality, case insensitive.
+     */
     static func areEqual(lhs: Self, rhs: Self) -> Bool {
         return lhs.bo == rhs.bo &&
             lhs.fieldExpression.uppercased() == rhs.fieldExpression.uppercased()
     }
-    
+    /**
+     Equality operator support.
+     */
     public static func ==(lhs: Self, rhs: Self) -> Bool {
         return areEqual(lhs: lhs, rhs: rhs)
     }
-    
+    /**
+     Hashable support.
+     */
     func hashMe(into hasher: inout Hasher) {
         hasher.combine(bo)
         hasher.combine(fieldExpression.uppercased())
     }
-    
+    /**
+     Hashable support.
+     */
     public func hash(into hasher: inout Hasher) {
         hashMe(into: &hasher)
     }
@@ -338,13 +436,8 @@ public struct QueryFrom<BO: QueryBO>: QueryExpression {
      - parameter bo: The required bo in the FROM sql clause, if any.
      - parameter otherFromBos: Other required BOs.
      */
-    public init(fromBos: OrderedSet<BO>) { //} (bo: BO? = nil, otherFromBos: OrderedSet<BO> = []) {
-//        self.bo = bo
+    public init(fromBos: OrderedSet<BO>) {
         self.fromBos = fromBos
-//        if let bo = bo {
-//            fromBos.append(bo)
-//        }
-//        fromBos.append(contentsOf: otherFromBos)
     }
     /**
      The string to be used in a SQL query to define which tables are to be searched.
@@ -367,18 +460,20 @@ public struct QueryFromLinks<BO: QueryBO, Link: QueryLink>: QueryExpression {
     /**
      Static join type to avoid performance lag when trying to compute a more link-customized one.
      */
-    let joinType: JoinType
+    let joinType: QueryJoinType
     /**
      Designated initializer
      */
-    init(bo: BO? = nil, links: OrderedSet<Link>, joinType: JoinType = .inner) {
+    init(bo: BO? = nil, links: OrderedSet<Link>, joinType: QueryJoinType = .inner) {
         self.joinType = joinType
         self.bo = bo
         self.links = links
     }
     
     var links: OrderedSet<Link>
-    
+    /**
+     The string to be used in a SQL query to define how BOs should be linked while searching.
+     */
     public var expression: String {
         var processedBos = [BO]()
         var join = joinType.stringRepresentation
@@ -462,7 +557,9 @@ public struct QueryGroup<BO: QueryBO>: QueryFieldExpression {
         self.fieldExpression = fieldExpression
         self.fieldAlias = alias
     }
-    
+    /**
+     The string to be used in a SQL query to determine how search results should be grouped.
+     */
     public var expression: String {
         if let  alias = fieldAlias {
             return "[\(alias)]"
@@ -494,7 +591,9 @@ public struct QueryOrder<BO: QueryBO>: QueryFieldExpression {
         self.fieldAlias = alias
         self.descending = descending
     }
-    
+    /**
+     The string to be used in a SQL query to determine how search results should be ordered.
+     */
     public var expression: String {
         let orderString: String = {
             if let  alias = fieldAlias {
@@ -523,7 +622,7 @@ public struct QueryOrder<BO: QueryBO>: QueryFieldExpression {
 /**
  Supported logical operators in query expressions, currently supported are 'AND', 'AND NOT', 'OR', 'OR NOT'.
  */
-public enum LogicalOperator {
+public enum QueryLogicalOperator {
     /**
      'AND' operator, 'AND NOT' if not assetive.
      */
@@ -541,7 +640,9 @@ public enum LogicalOperator {
             return "OR"
         }
     }
-    
+    /**
+     True if the operator does not involve a negation.
+     */
     var assertive: Bool {
         switch self {
         case .and(let assertive):
@@ -550,7 +651,10 @@ public enum LogicalOperator {
             return assertive
         }
     }
-    
+    /**
+     The operator rendered as a string.
+     - parameter atBeginning: When true the operator will be omitted.
+     */
     func stringRepresentation(atBeginning: Bool = false) -> String {
         let logical = atBeginning ? "" : " \(asString) "
         let negation = (assertive ? "" : " NOT ")
@@ -558,10 +662,10 @@ public enum LogicalOperator {
     }
 }
 
-extension LogicalOperator: Hashable {}
+extension QueryLogicalOperator: Hashable {}
 
 extension NSComparisonPredicate.Operator {
-    var sqlOperator: SqlOperator {
+    var sqlOperator: QueryOperator {
         switch self {
         case .beginsWith:
             return .beginsWith
@@ -593,11 +697,11 @@ A concrete struct to represent a SQL WHERE expression taken from a list of BOs.
 public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
     public let fieldExpression: String
     public let value: AnyHashable?
-    public let `operator`: SqlOperator
-    public let logical: LogicalOperator
+    public let `operator`: QueryOperator
+    public let logical: QueryLogicalOperator
     public let bo: BO?
     public let fieldAlias: String?
-    public let preferredType: FieldType?
+    public let preferredType: QueryFieldType?
 //    let exact: Bool
     
 //    var nestedExpression: QueryWhere?
@@ -616,13 +720,13 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
      */
     public init(fieldExpression: String = "",
           value: AnyHashable?,
-          `operator`: SqlOperator = .equal,
-          logical: LogicalOperator = .and(),
+          `operator`: QueryOperator = .equal,
+          logical: QueryLogicalOperator = .and(),
           bo: BO? = nil,
           fieldAlias: String? = nil,
-          preferredType: FieldType? = nil) {
+          preferredType: QueryFieldType? = nil) {
          // assume an empty string as a recid request.
-         self.fieldExpression = fieldExpression.isEmpty ? BOKey.recId : fieldExpression
+         self.fieldExpression = fieldExpression.isEmpty ? QueryBOKey.recId : fieldExpression
          self.value = value
          self.operator = `operator`
          self.logical = logical
@@ -651,7 +755,7 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
     public var expression: String {
         // if we got a field alias use that as left argument
         var leftArgument = selectAlias ?? ""
-        var type = preferredType ?? FieldType.undefined
+        var type = preferredType ?? QueryFieldType.undefined
         
         if leftArgument.isEmpty {
             // no field alias, get the BO alias, if any
@@ -661,7 +765,7 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
             }()
             if fieldExpression.isEmpty {
                 // no field expression, assume we mean RecId
-                leftArgument = selectAlias ?? boAliasString + BOKey.recId
+                leftArgument = selectAlias ?? boAliasString + QueryBOKey.recId
                 if type == .undefined {
                     type = .number
                 }
@@ -699,7 +803,7 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
     /**
      Create the SQL WHERE expreesion.
      */
-    private func expression(leftArgument: String, type: FieldType) -> String {
+    private func expression(leftArgument: String, type: QueryFieldType) -> String {
         var leftArgument = leftArgument
         var rightArgument = ""
         var op = self.operator.rawValue
@@ -784,7 +888,7 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
 /**
  Supported SQL JOIN types.
  */
-public enum JoinType: Int {
+public enum QueryJoinType: Int {
     case inner
     case leftOuter
     case rightOuter
@@ -838,7 +942,7 @@ public protocol DBQuery: class {
     /**
      The join type for the query.
      */
-    var joinType: JoinType { get }
+    var joinType: QueryJoinType { get }
 
     /**
      The most significant BOs in the query.
@@ -887,26 +991,6 @@ public protocol DBQuery: class {
 }
 
 extension DBQuery {
-    
-//    enum JoinType: Int {
-//        case inner
-//        case leftOuter
-//        case rightOuter
-//        case fullOuter
-//
-//        var stringRepresentation: String {
-//            switch self {
-//            case .inner:
-//                return "INNER JOIN"
-//            case .leftOuter:
-//                return "LEFT OUTER JOIN"
-//            case .rightOuter:
-//                return "RIGHT OUTER JOIN"
-//            case .fullOuter:
-//                return "FULL OUTER JOIN"
-//            }
-//        }
-//    }
     /**
      Add the order fields of the passed BO to the query ORDER expressions.
      */
@@ -1056,7 +1140,7 @@ open class Query<DB: QueryDB>: NSObject, DBQuery {
     
     public var oneRouteOnly = false
     public var distinct = false
-    public var joinType = JoinType.inner
+    public var joinType = QueryJoinType.inner
 
     public var mainBos = OrderedSet<BO>()
     public var fromBos = OrderedSet<BO>()
@@ -1082,268 +1166,3 @@ extension OrderedSet where Element: QueryExpression {
         }
     }
 }
-
-//extension Query { //SQLQueryGenerator where T: MyBox {
-//    func merge(with query: Query) {
-//        whereExpressions += query.whereExpressions
-//        fromBos += query.fromBos
-//        linkerBos += query.linkerBos
-//
-//        oneRouteOnly = oneRouteOnly || query.oneRouteOnly
-//        distinct = distinct || query.distinct
-//
-////        if whereExpressions.isEmpty {
-////            // no where, just use the other query where
-////            whereExpressions = query.whereExpressions
-////        } else {
-////            // some where, let's do some merge
-////            whereExpressions += query.whereExpressions
-////        }
-//    }
-    /**
-     !! Unused !!
-     For performace reasons bypass this step.
-     */
-//    fileprivate func joinString(link: QueryLink) -> String {
-//        for index in (1...link.branchCount()) {
-//            if let bo = link.table(index) as? QueryBO,
-//                mainBos.contains(bo) {
-//                return JoinType.inner.stringRepresentation
-//            }
-//        }
-//
-//        for index in (1...link.branchCount()) {
-//            if let bo = link.table(index) as? QueryBO,
-//                requiredBos.contains(bo) {
-//                    return JoinType.inner.stringRepresentation // LEFT OUTER JOIN
-//            }
-//            if let linker = link.table(index) as? QueryBoLinker,
-//                let _ = requiredBos.first(where: { linker.isPointerTo($0) }) {
-//                    return JoinType.inner.stringRepresentation // LEFT OUTER JOIN
-//            }
-//        }
-//
-//        return joinType.stringRepresentation
-//
-//    }
-    
-//    fileprivate func setOrderFields(bo: BO) {
-//        bo.orderFields.forEach { orderBy.append(QueryOrder(fieldExpression: $0.name, bo: bo)) }
-//    }
-
-//    private func directLinks(from bo:QueryBO, to bos: [QueryBO]) -> [QueryLink] {
-//        bo.links.filter { link in
-//            guard let linkerBo = link.boLinker,
-//                let aTarget = linkerBo.aPtr.target() as? BO,
-//                let bTarget = linkerBo.aPtr.target() as? BO
-//                else { return false }
-//
-//            return aTarget == bo ||
-//                bos.contains(aTarget) ||
-//                bTarget == bo ||
-//                bos.contains(bTarget)
-//        }
-//    }
-    
-//    private func setupLink(bo: QueryBO, bos: [QueryBO]) -> Bool {
-//        let links = bo.links.filter { link in
-//            guard let linkerBo = link.boLinker,
-//                let aTarget = linkerBo.aPtr.target() as? QueryBO,
-//                let bTarget = linkerBo.aPtr.target() as? QueryBO
-//                else { return false }
-//
-//            return aTarget == bo ||
-//                bos.contains(aTarget) ||
-//                bTarget == bo ||
-//                bos.contains(bTarget)
-//        }
-//
-//        directLinks = OrderedSet(links)
-//
-//        return links.count > 0
-//    }
-    
-//    private func squeezedRequiredBos(bos: OrderedSet<QueryBO>) -> OrderedSet<QueryBO> {
-//        return OrderedSet(
-//            bos.enumerated().filter { args -> Bool in
-//                let (offset, bo) = args
-//                guard offset > 0 else { return true }
-//                return !setupLink(bo: bo, bos: bos.filter { $0 != bo })
-//            }
-//            .map { $0.1 }
-//        )
-//    }
-    
-//    /**
-//     All the BOs required to run the query.
-//     */
-//    var requiredBos: OrderedSet<QueryBO> {
-//        var allBos = mainBos
-//        allBos.append(contentsOf: fromBos)
-//        allBos.append(contentsOf: linkerBos)
-//        allBos.append(contentsOf: whereExpressions.allBos)
-//        allBos.append(contentsOf: selectFields.allBos)
-//        allBos.append(contentsOf: groupFields.allBos)
-//        allBos.append(contentsOf: orderBy.allBos)
-//
-//        return allBos
-//    }
-//
-//    enum QueryError: Error {
-//        case badSql
-//        case valeFailure(message: String)
-//    }
-    
-//    private func tryRun() throws -> MyBoxCursor {
-//        guard let sql = sqlString else { throw QueryError.badSql }
-////        return MyBoxCursor(db: db,
-////                           sqlStr: sql,
-////                           boMap: boMap)!
-//
-//        var error: QueryError? = nil
-//        var cursor: MyBoxCursor? = nil
-//        let map = boMap
-//        let db = self.db
-//
-//        TryCatch.try({
-//            cursor = MyBoxCursor(db: db,
-//                                 sqlStr: sql,
-//                                 boMap: map)
-//        }, catchException: { exception in
-//            error = QueryError.valeFailure(message: exception?.reason ?? "unknown")
-//        }, finally: nil)
-//
-//        if let error = error {
-//            throw error
-//        }
-//
-//        return cursor!
-//    }
-//
-//    func run() -> MyBoxCursor? {
-//        do {
-//            return try tryRun()
-//        } catch {
-//            fatalError(error.localizedDescription)
-//        }
-//    }
-
-//    /**
-//     Set up the BOs needed to run the query.
-//     */
-//    private func setFromBos() -> Bool {
-//        let bos = requiredBos
-//        // make sure we got at least one BO
-//        guard let rootBo: BO = bos.first
-//            else { return false }
-//
-//        return setFromBos(root: rootBo, required: bos)
-//    }
-//    /**
-//     Set up the BOs needed to run the query.
-//     - parameter root: The BO from where the search for required links is started.
-//     - parameter required: All the BOs needed to run the query.
-//     */
-//    private func setFromBos(root: BO, required: OrderedSet<BO>) -> Bool {
-//        if required.count == 1 {
-//            // 1 bo simple query
-//            fromExpressions.append(QueryFrom(otherFromBos: required + linkerBos))
-//        }
-//
-//        return !(fromExpressions.isEmpty) // && fromLinksExpressions.isEmpty)
-//    }
-
-//    var boMap: MyBoxListCursor.BoMap {
-//        return selectFields.enumerated()
-//            .reduce(into: MyBoxListCursor.BoMap()) { (map, args) in
-//                let (index, querySelect) = args
-//                map[index + 1] = querySelect.bo?.type
-//        }
-//    }
-    
-//    var selectFieldsString: String? {
-//        let fields = (selectFields.compactMap { $0.expression } + orderBy.compactMap { $0.expression })
-//            .joined(separator: ", ")
-//        guard !fields.isEmpty else { return nil }
-//        return "SELECT \(distinct ? "DISTINCT " : "")\(fields)"
-//    }
-//
-//    var whereConditionsString: String {
-//        let conditions = whereExpressions.reduce(into: "") { (string, queryWhere) in
-//            let expression = queryWhere.expression
-//            guard !expression.isEmpty else { return }
-//            string.append("\(queryWhere.logical.stringRepresentation(atBeginning: (string.isEmpty)))\(expression)")
-//        }
-//        guard !conditions.isEmpty else { return "" }
-//        return "\nWHERE \(conditions)"
-//    }
-//
-//    var groupFieldsString: String {
-//        let fields = groupFields.compactMap { $0.expression }
-//            .joined(separator: ", ")
-//        guard !fields.isEmpty else { return "" }
-//        return "\nGROUP BY \(fields)"
-//    }
-//
-//    var orderByString: String {
-//        let fields = orderBy.compactMap { $0.expression }
-//            .joined(separator: ", ")
-//        guard !fields.isEmpty else { return "" }
-//        return "\nORDER BY \(fields)"
-//    }
-
-//    var sqlString: String? {
-//        guard setFromBos(),
-//            let selectClause = selectFieldsString
-//             else { return nil }
-//
-//        let whereClause = whereConditionsString
-//
-//        let groupClause = groupFieldsString
-//
-////        let startTime = Date()
-//
-//        let from = fromExpressions.map { $0.expression } //+ fromLinksExpressions.map { $0.expression }
-//
-////        let duration = Date().timeIntervalSince(startTime)
-////        print("From processing duration: \(duration)")
-//
-//        let orderByClause = orderByString
-//
-//        let string = from.enumerated().reduce(into: "") { (string, args) in
-//            let (index, expression) = args
-//            let fromString: String = {
-//                let string = "\(selectClause)\nFROM \(expression)\(whereClause)\(groupClause)"
-//                return (index == 0) ? string : "\nUNION\n(\(string))"
-//            }()
-//            string.append(fromString)
-//        }
-//
-//        return "\(string)\(orderByClause)"
-//    }
-//
-//}
-
-// MARK: - String
-
-//// MARK: - Escape
-//
-//extension String {
-//    func escapedForRegex() -> String {
-//        return NSRegularExpression.escapedPattern(for: self)
-//    }
-//
-//    func escapedForLike() -> String {
-//        return replacingOccurrences(of: "_", with: "\\_")
-//        .replacingOccurrences(of: "%", with: "\\%")
-//    }
-//
-//    func validRegex() -> Bool {
-//        do {
-//            let _ = try NSRegularExpression(pattern: self, options: [])
-//        } catch  {
-//            return false
-//        }
-//        return true
-//    }
-//}

@@ -12,7 +12,7 @@ class DB: QueryDB {
 class BO: NSObject, QueryBO {
 
     weak var db: DB!
-    var type: BOType
+    var type: QueryBOType
     var name: String
     var fields: [Field] = []
     var searchableFields: [Field] { fields }
@@ -22,7 +22,7 @@ class BO: NSObject, QueryBO {
     let alias: String
     var displayName: String { NSLocalizedString(name, comment: name) }
     
-    init(in db: DB, name: String, alias: String, type: BOType) {
+    init(in db: DB, name: String, alias: String, type: QueryBOType) {
         self.db = db
         self.alias = alias.isEmpty ? name : alias
         self.name = name
@@ -32,7 +32,7 @@ class BO: NSObject, QueryBO {
         db.bos.append(self)
     }
     
-    @discardableResult func createField(name: String, type: FieldType) -> Field {
+    @discardableResult func createField(name: String, type: QueryFieldType) -> Field {
         let field = Field(name: name, type: type, bo: self)
         fields.append(field)
         return field
@@ -47,10 +47,10 @@ class Field: NSObject, QueryField {
 //    typealias BO = QueryBO
     let bo: BO
     let name: String
-    let fieldType: FieldType
+    let fieldType: QueryFieldType
     var label: String { name }
     
-    fileprivate init(name: String, type: FieldType, bo: BO) {
+    fileprivate init(name: String, type: QueryFieldType, bo: BO) {
         self.name = name
         self.fieldType = type
         self.bo = bo
@@ -246,21 +246,21 @@ final class QueryEditorTests: XCTestCase {
         queryOrder(addBOAlias: true, addFieldAlias: false, descending: true)
     }
 
-    func queryWhere(type: FieldType = .string, addBOAlias: Bool = false, operator: SqlOperator = .equal, addFieldAlias: Bool = false) {
+    func queryWhere(type: QueryFieldType = .string, addBOAlias: Bool = false, operator: QueryOperator = .equal, addFieldAlias: Bool = false) {
 //        let db = testCreateDB(addAlias: addBOAlias)
         
         switch type {
         case .string:
-            let operators: [SqlOperator] = [.equal, .beginsWith, .endsWith, .contains]
+            let operators: [QueryOperator] = [.equal, .beginsWith, .endsWith, .contains]
             operators.forEach { queryWhereString(addBOAlias: addBOAlias, operator: $0, addFieldAlias: addFieldAlias) }
         case .number:
-            let operators: [SqlOperator] = [.equal, .lessOrEqual, .less, .greaterOrEqual, .greater]
+            let operators: [QueryOperator] = [.equal, .lessOrEqual, .less, .greaterOrEqual, .greater]
             operators.forEach { queryWhereNumber(addBOAlias: addBOAlias, operator: $0, addFieldAlias: addFieldAlias) }
         case .date:
-            let operators: [SqlOperator] = [.equal, .lessOrEqual, .less, .greaterOrEqual, .greater]
+            let operators: [QueryOperator] = [.equal, .lessOrEqual, .less, .greaterOrEqual, .greater]
             operators.forEach { queryWhereDate(addBOAlias: addBOAlias, operator: $0, addFieldAlias: addFieldAlias) }
         case .boolean:
-            let operators: [SqlOperator] = [.equal, .notEqual]
+            let operators: [QueryOperator] = [.equal, .notEqual]
             operators.forEach { queryWhereBool(addBOAlias: addBOAlias, operator: $0, addFieldAlias: addFieldAlias) }
         default:
             break
@@ -268,7 +268,7 @@ final class QueryEditorTests: XCTestCase {
         
     }
     
-    func queryWhereString(addBOAlias: Bool = false, operator: SqlOperator = .equal, addFieldAlias: Bool = false) {
+    func queryWhereString(addBOAlias: Bool = false, operator: QueryOperator = .equal, addFieldAlias: Bool = false) {
         let db = testCreateDB(addAlias: addBOAlias)
         guard let bo = db.bos.first,
             let field = (bo as? Artists)?.nameField else { fatalError("test failed") }
@@ -314,7 +314,7 @@ final class QueryEditorTests: XCTestCase {
 
     }
     
-    func queryWhereDate(addBOAlias: Bool = false, operator: SqlOperator = .equal, addFieldAlias: Bool = false) {
+    func queryWhereDate(addBOAlias: Bool = false, operator: QueryOperator = .equal, addFieldAlias: Bool = false) {
         let db = testCreateDB(addAlias: addBOAlias)
         guard let bo = db.bos.first,
             let field = (bo as? Artists)?.birthdayField else { fatalError("test failed") }
@@ -351,7 +351,7 @@ final class QueryEditorTests: XCTestCase {
                        expected)
     }
     
-    func queryWhereNumber(addBOAlias: Bool = false, operator: SqlOperator = .equal, addFieldAlias: Bool = false) {
+    func queryWhereNumber(addBOAlias: Bool = false, operator: QueryOperator = .equal, addFieldAlias: Bool = false) {
         let db = testCreateDB(addAlias: addBOAlias)
         guard let bo = db.bos.first,
             let field = (bo as? Artists)?.opusField else { fatalError("test failed") }
@@ -386,7 +386,7 @@ final class QueryEditorTests: XCTestCase {
                        expected)
     }
     
-    func queryWhereBool(addBOAlias: Bool = false, operator: SqlOperator = .equal, addFieldAlias: Bool = false) {
+    func queryWhereBool(addBOAlias: Bool = false, operator: QueryOperator = .equal, addFieldAlias: Bool = false) {
         let db = testCreateDB(addAlias: addBOAlias)
         guard let bo = db.bos.first,
             let field = (bo as? Artists)?.maleField else { fatalError("test failed") }
@@ -415,7 +415,7 @@ final class QueryEditorTests: XCTestCase {
     }
 
     func testQueryWhere() {
-        FieldType.allCases.forEach {
+        QueryFieldType.allCases.forEach {
             queryWhere(type: $0)
             queryWhere(type: $0, addBOAlias: true)
             queryWhere(type: $0, addBOAlias: true, addFieldAlias: true)

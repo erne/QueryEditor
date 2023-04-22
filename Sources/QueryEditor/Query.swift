@@ -194,7 +194,7 @@ public struct QueryBOType: Equatable, RawRepresentable {
     public static var table = QueryBOType(rawValue: "table")
     public static var linker = QueryBOType(rawValue: "linker")
     
-    var localizedStringRepresentation: String {
+    public var localizedStringRepresentation: String {
         return NSLocalizedString(rawValue, comment: rawValue).capitalized(with: Locale.current)
     }
 }

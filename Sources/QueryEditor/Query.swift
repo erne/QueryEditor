@@ -124,7 +124,13 @@ public protocol QueryLink: NSObject {
     associatedtype Linker: QueryBOLinker
 
     var name: String { get }
+    /**
+     The linked BOs.
+     */
     var branches: [BO] { get }
+    /**
+     Whether the link joins the passed BOs.
+     */
     func isBetween(_ aBO: BO, anotherBO: BO) -> Bool
 }
 
@@ -141,6 +147,9 @@ extension QueryLink {
     func otherBO(knownBO: BO) -> BO? {
         precondition(branches.count == 2, "wrong number of branches in link")
         return branches.first { $0 != knownBO }
+    }
+    func isBetween(_ aBO: BO, anotherBO: BO) -> Bool {
+        branches.contains(aBO) && branches.contains(anotherBO)
     }
 }
 /**
@@ -175,15 +184,15 @@ public struct QueryBOKey {
 /**
  Available BO types.
  */
-public struct QueryBOType: Equatable {
-    let rawValue: String
+public struct QueryBOType: Equatable, RawRepresentable {
+    public let rawValue: String
     
-    public init(_ rawValue: String) {
+    public init(rawValue: String) {
         self.rawValue = rawValue
     }
     
-    public static var table = QueryBOType("table")
-    public static var linker = QueryBOType("linker")
+    public static var table = QueryBOType(rawValue: "table")
+    public static var linker = QueryBOType(rawValue: "linker")
     
     var localizedStringRepresentation: String {
         return NSLocalizedString(rawValue, comment: rawValue).capitalized(with: Locale.current)

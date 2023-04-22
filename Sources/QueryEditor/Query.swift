@@ -1147,20 +1147,20 @@ open class Query<DB: QueryDB>: NSObject, DBQuery {
 //        print("Query bye")
 //    }
     
-    public var oneRouteOnly = false
-    public var distinct = false
-    public var joinType = QueryJoinType.inner
+    open var oneRouteOnly = false
+    open var distinct = false
+    open var joinType = QueryJoinType.inner
 
-    public var mainBos = OrderedSet<BO>()
-    public var fromBos = OrderedSet<BO>()
-    public var linkerBos = OrderedSet<BO>()
-    public var directLinks = OrderedSet<Link>()
-    public var fromExpressions = OrderedSet<QueryFrom<BO>>()
-    public var fromLinksExpressions = OrderedSet<QueryFromLinks<BO, Link>>()
-    public var whereExpressions = OrderedSet<QueryWhere<BO>>()
-    public var selectFields = OrderedSet<QuerySelect<BO>>()
-    public var groupFields = OrderedSet<QueryGroup<BO>>()
-    public var orderBy = OrderedSet<QueryOrder<BO>>()
+    open var mainBos = OrderedSet<BO>()
+    open var fromBos = OrderedSet<BO>()
+    open var linkerBos = OrderedSet<BO>()
+    open var directLinks = OrderedSet<Link>()
+    open var fromExpressions = OrderedSet<QueryFrom<BO>>()
+    open var fromLinksExpressions = OrderedSet<QueryFromLinks<BO, Link>>()
+    open var whereExpressions = OrderedSet<QueryWhere<BO>>()
+    open var selectFields = OrderedSet<QuerySelect<BO>>()
+    open var groupFields = OrderedSet<QueryGroup<BO>>()
+    open var orderBy = OrderedSet<QueryOrder<BO>>()
 }
 
 extension OrderedSet where Element: QueryExpression {

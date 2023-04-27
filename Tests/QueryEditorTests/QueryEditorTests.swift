@@ -44,6 +44,12 @@ class BO: NSObject, QueryBO {
 }
 
 class Field: NSObject, QueryField {
+    var presetValues: [AnyHashable]?
+    
+    var formatter: Formatter?
+    
+    var allowedOperators: [QueryOperator]?
+    
 //    typealias BO = QueryBO
     let bo: BO
     let name: String
@@ -141,6 +147,19 @@ class Artists: BO {
 }
 
 class MyQueryEditorRow: QueryEditorRow<DB> {}
+
+class MyQuery: Query<DB> {
+    func setup(bo: BO, selectField: Field, whereField: Field, value: AnyHashable, op: QueryOperator) {
+        
+        selectFields.append(QuerySelect(fieldExpression: selectField.name, bo: bo))
+        
+        whereExpressions.append(QueryWhere(fieldExpression: whereField.name,
+                                           value: value,
+                                           operator: op,
+                                           bo: bo,
+                                           fieldAlias: nil))
+    }
+}
 
 final class QueryEditorTests: XCTestCase {
     func testCreateDB(addAlias: Bool = false) -> DB {
@@ -422,6 +441,53 @@ final class QueryEditorTests: XCTestCase {
         }
     }
     
+    func testMerge() {
+        let db = testCreateDB(addAlias: true)
+        guard let bo = db.bos.first,
+            let numberField = (bo as? Artists)?.opusField,
+            let stringField = (bo as? Artists)?.nameField else { fatalError("test failed") }
+
+        let expression = QueryWhere(fieldExpression: numberField.name,
+                                    value: 23,
+                                    operator: .greater,
+                                    bo: bo,
+                                    fieldAlias: nil)
+        
+        let query = Query(db: db)
+        query.selectFields.append(QuerySelect(fieldExpression: numberField.name, bo: bo))
+        query.whereExpressions.append(expression)
+        
+        print(query.sqlString ?? "bad sql")
+
+        let myQuery = MyQuery(db: db)
+        myQuery.setup(bo: bo,
+                      selectField: stringField,
+                      whereField: stringField,
+                      value: "Erne",
+                      op: .beginsWith)
+        
+        print(myQuery.sqlString ?? "bad sql")
+        
+//        let expression2 = QueryWhere(fieldExpression: stringField.name,
+//                                    value: "Erne",
+//                                    operator: .beginsWith,
+//                                    bo: bo,
+//                                    fieldAlias: nil)
+//
+//        let query2 = Query(db: db)
+//        query2.selectFields.append(QuerySelect(fieldExpression: stringField.name, bo: bo))
+//        query2.whereExpressions.append(expression2)
+//
+//        print(query2.sqlString ?? "bad sql")
+
+        query.merge(with: myQuery)
+
+        print(query.sqlString ?? "bad sql")
+
+        XCTAssertTrue(query.whereExpressions.count == 2)
+
+    }
+    
 //    func testQueryEditor() {
 //        let db = testCreateDB(addAlias: true)
 //        guard let bo = db.bos.first,
@@ -468,6 +534,7 @@ final class QueryEditorTests: XCTestCase {
         ("testQueryFrom", testQueryFrom ),
         ("testQueryGroup", testQueryGroup ),
         ("testQueryOrder", testQueryOrder ),
-        ("testQueryWhere", testQueryWhere )
+        ("testQueryWhere", testQueryWhere ),
+        ("testMerge", testMerge)
         ] as [Any]
 }

@@ -1023,7 +1023,8 @@ extension DBQuery {
     /**
      Combine this query with the passed one.
      */
-    public func merge(with query: Self) {
+    public func merge<DB>(with query: Query<DB>) where Self == Query<DB> {
+        selectFields += query.selectFields
         whereExpressions += query.whereExpressions
         fromBos += query.fromBos
         linkerBos += query.linkerBos

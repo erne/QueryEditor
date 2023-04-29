@@ -80,6 +80,9 @@ extension QueryBO {
     var recIdAlias: String { "\(alias)_\(QueryBOKey.recId)" }
     var displayName: String { NSLocalizedString(name, comment: name) }
     func field(forName name: String) -> Field? {
+        fields.first { $0.name == name }
+    }
+    func searchableField(forName name: String) -> Field? {
         searchableFields.first { $0.name == name }
     }
 }
@@ -780,7 +783,7 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
                 }
             } else {
                 // try to get a field type using the expression as its name in the passed BO
-                if let fieldType = bo?.field(forName: fieldExpression)?.fieldType {
+                if let fieldType = bo?.searchableField(forName: fieldExpression)?.fieldType {
                     leftArgument = selectAlias ?? boAliasString + fieldExpression
                     if type == .undefined {
                         type = fieldType

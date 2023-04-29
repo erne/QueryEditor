@@ -282,7 +282,7 @@ open class QueryEditorRow<DB: QueryDB>: NSTableCellView, NSTextFieldDelegate, NS
             if let bo = queryWhere.bo {
                 // configure the popups for the query bo
                 let fieldName = queryWhere.fieldExpression
-                if let field = bo.field(forName: fieldName),
+                if let field = bo.searchableField(forName: fieldName),
                     let item = fieldsPopupManager.item(for: field) {
                     // we got a item in the fields popup matching the Where field, let's select it
                     queryFieldsPopup.select(item)

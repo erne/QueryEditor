@@ -31,10 +31,17 @@ import Collections
 //    }
 //}
 
-final class QueryDataSourcesPopup: NSPopUpButton { }
+//final class QueryDataSourcesPopup: NSPopUpButton { }
+
+public protocol QueryEditorDelegate: class {
+    func queryEditorBoAction<T>(_ queryEditor: QueryEditor<T>, newBO: T.BO) -> Bool
+    func queryEditorSearchAction<T>(_ queryEditor: QueryEditor<T>)
+}
 
 open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataSource, DragReorderTableViewDelegate {
     typealias BO = DB.BO
+    
+    public weak var delegate: QueryEditorDelegate?
     
     public var action: ((Query<DB>?) -> ())?
     public var liveSearch = false {
@@ -49,10 +56,24 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
     }
     func doAction() {
         objects = queryEditorWhereExpressions
+        delegate?.queryEditorSearchAction(self)
         action?(query)
     }
     
     @IBOutlet weak var bosPopup: NSPopUpButton! //QueryDataSourcesPopup!
+    @IBAction func bosPopupAction(_ sender: NSPopUpButton) {
+        guard let bo = sender.selectedItem?.representedObject as? BO,
+            let query = query
+            else { return }
+        
+        if !(delegate?.queryEditorBoAction(self, newBO: bo) ?? false) {
+            query.mainBos = [bo]
+            query.selectFields = [QuerySelect(fieldExpression: "*", bo: bo)]
+        }
+        if liveSearch {
+            doAction()
+        }
+    }
     @IBOutlet weak var queryEditorTableView: NSTableView! {
         didSet {
             // allow reorder of items
@@ -99,6 +120,10 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
             item.representedObject = bo
             bosPopup.menu?.addItem(item)
         }
+        
+        let index = bosPopup.indexOfItem(withRepresentedObject: query?.mainBos.first)
+        bosPopup.selectItem(at: index)
+
     }
 
     //extension QueryEditor: DragReorderTableViewDataSource, NSTableViewDelegate {
@@ -278,8 +303,8 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
         } else {
             updateRowIndexes(in: tableView, startingAt: newIndex, endingAt: oldIndex)
         }
-        if self.liveSearch {
-            self.doAction()
+        if liveSearch {
+            doAction()
         }
     }
 }

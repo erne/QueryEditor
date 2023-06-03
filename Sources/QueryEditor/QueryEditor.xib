@@ -27,7 +27,7 @@
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Y7T-FX-w3W" customClass="QueryDataSourcesPopup" customModule="Draggable_Grid_View" customModuleProvider="target">
+                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Y7T-FX-w3W">
                     <rect key="frame" x="52" y="230" width="77" height="25"/>
                     <popUpButtonCell key="cell" type="push" title="Item 1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="9tj-Ym-NlB" id="P2L-RZ-sF7">
                         <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -40,6 +40,9 @@
                             </items>
                         </menu>
                     </popUpButtonCell>
+                    <connections>
+                        <action selector="bosPopupAction:" target="-2" id="ypQ-YZ-mdW"/>
+                    </connections>
                 </popUpButton>
                 <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Gvg-gM-4DO">
                     <rect key="frame" x="581" y="13" width="83" height="32"/>

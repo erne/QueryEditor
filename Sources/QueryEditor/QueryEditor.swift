@@ -93,6 +93,7 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
     
     public var query: Query<DB>? {
         didSet {
+            guard isViewLoaded else { return }
             if query != nil {
                 configureBosPopoup()
             } else {
@@ -101,6 +102,15 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
             queryEditorTableView.reloadData()
         }
     }
+    
+    override open func viewDidLoad() {
+        super.viewDidLoad()
+        if query != nil {
+            configureBosPopoup()
+            queryEditorTableView.reloadData()
+        }
+    }
+    
     public var db: DB? {
         query?.db
     }

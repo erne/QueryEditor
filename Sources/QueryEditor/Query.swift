@@ -979,7 +979,7 @@ public protocol DBQuery: class {
     /**
      The expressions defining a SQL FROM clause.
      */
-    var otherFromExpressions: [String] { get set }
+    var otherFromExpressions: [String] { get }
     /**
      The expressions defining a SQL WHERE clause.
      */
@@ -1207,7 +1207,7 @@ open class Query<DB: QueryDB>: NSObject, DBQuery {
     open var linkerBos = OrderedSet<BO>()
 //    open var directLinks = OrderedSet<Link>()
     open var fromExpressions = OrderedSet<QueryFrom<BO>>()
-    open var otherFromExpressions = [String]()
+    open var otherFromExpressions: [String] { [] }
     open var whereExpressions = OrderedSet<QueryWhere<BO>>()
     open var selectFields = OrderedSet<QuerySelect<BO>>()
     open var groupFields = OrderedSet<QueryGroup<BO>>()

@@ -775,7 +775,7 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
                 guard let alias = boAlias else { return "" }
                 return "\(alias)."
             }()
-            if fieldExpression.isEmpty {
+            if fieldExpression.isEmpty || fieldExpression.uppercased() == QueryBOKey.recId.uppercased() {
                 // no field expression, assume we mean RecId
                 leftArgument = selectAlias ?? boAliasString + QueryBOKey.recId
                 if type == .undefined {
@@ -900,25 +900,25 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
 /**
  Supported SQL JOIN types.
  */
-public enum QueryJoinType: Int {
-    case inner
-    case leftOuter
-    case rightOuter
-    case fullOuter
-    
-    var stringRepresentation: String {
-        switch self {
-        case .inner:
-            return "INNER JOIN"
-        case .leftOuter:
-            return "LEFT OUTER JOIN"
-        case .rightOuter:
-            return "RIGHT OUTER JOIN"
-        case .fullOuter:
-            return "FULL OUTER JOIN"
-        }
-    }
-}
+//public enum QueryJoinType: Int {
+//    case inner
+//    case leftOuter
+//    case rightOuter
+//    case fullOuter
+//
+//    public var stringRepresentation: String {
+//        switch self {
+//        case .inner:
+//            return "INNER JOIN"
+//        case .leftOuter:
+//            return "LEFT OUTER JOIN"
+//        case .rightOuter:
+//            return "RIGHT OUTER JOIN"
+//        case .fullOuter:
+//            return "FULL OUTER JOIN"
+//        }
+//    }
+//}
 /**
  Query Errors
  */
@@ -946,7 +946,7 @@ public protocol DBQuery: class {
     /**
      Whether only one route should be walked to fulfill the query.
      */
-    var oneRouteOnly: Bool { get set }
+//    var oneRouteOnly: Bool { get set }
     /**
      Whether duplicate results should be filtered out.
      */
@@ -954,7 +954,7 @@ public protocol DBQuery: class {
     /**
      The join type for the query.
      */
-    var joinType: QueryJoinType { get }
+//    var joinType: QueryJoinType { get }
 
     /**
      The most significant BOs in the query.
@@ -1034,7 +1034,7 @@ extension DBQuery {
         fromBos += query.fromBos
         linkerBos += query.linkerBos
         
-        oneRouteOnly = oneRouteOnly || query.oneRouteOnly
+//        oneRouteOnly = oneRouteOnly || query.oneRouteOnly
         distinct = distinct || query.distinct
     }
 //    /**
@@ -1198,9 +1198,9 @@ open class Query<DB: QueryDB>: NSObject, DBQuery {
 //        print("Query bye")
 //    }
     
-    open var oneRouteOnly = false
+//    open var oneRouteOnly = false
     open var distinct = false
-    open var joinType = QueryJoinType.inner
+//    open var joinType = QueryJoinType.inner
 
     open var mainBos = OrderedSet<BO>()
     open var fromBos = OrderedSet<BO>()

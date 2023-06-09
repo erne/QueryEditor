@@ -979,7 +979,7 @@ public protocol DBQuery: class {
     /**
      The expressions defining a SQL FROM clause.
      */
-//    var fromLinksExpressions: OrderedSet<QueryFromLinks<BO, Link>> { get set }
+    var otherFromExpressions: [String] { get set }
     /**
      The expressions defining a SQL WHERE clause.
      */
@@ -1059,7 +1059,7 @@ extension DBQuery {
         fromExpressions.append(QueryFrom(fromBos: required + linkerBos))
 //        }
 
-        return !(fromExpressions.isEmpty) // && fromLinksExpressions.isEmpty)
+        return !(fromExpressions.isEmpty && otherFromExpressions.isEmpty)
     }
     /**
      The SELECT clause.
@@ -1156,7 +1156,7 @@ open class Query<DB: QueryDB>: NSObject, DBQuery {
         
         //        let startTime = Date()
         
-        let from = fromExpressions.map { $0.expression } //+ fromLinksExpressions.map { $0.expression }
+        let from = fromExpressions.map { $0.expression } + otherFromExpressions
         
         //        let duration = Date().timeIntervalSince(startTime)
         //        print("From processing duration: \(duration)")
@@ -1207,7 +1207,7 @@ open class Query<DB: QueryDB>: NSObject, DBQuery {
     open var linkerBos = OrderedSet<BO>()
 //    open var directLinks = OrderedSet<Link>()
     open var fromExpressions = OrderedSet<QueryFrom<BO>>()
-//    open var fromLinksExpressions = OrderedSet<QueryFromLinks<BO, Link>>()
+    open var otherFromExpressions = [String]()
     open var whereExpressions = OrderedSet<QueryWhere<BO>>()
     open var selectFields = OrderedSet<QuerySelect<BO>>()
     open var groupFields = OrderedSet<QueryGroup<BO>>()

@@ -770,48 +770,71 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
     public var expression: String {
         // if we got a field alias use that as left argument
         var leftArgument = selectAlias ?? ""
-        var type = preferredType ?? QueryFieldType.undefined
-        
+        func guessType(defaultType: QueryFieldType = .undefined) -> QueryFieldType {
+            preferredType ?? defaultType
+        }
+        var type: QueryFieldType
+        let field: BO.Field? = { bo?.field(forName: fieldExpression) }()        
+        let recidExpression = (fieldExpression.isEmpty || fieldExpression.uppercased() == QueryBOKey.recId.uppercased())
+
         if leftArgument.isEmpty {
             // no field alias, get the BO alias, if any
             let boAliasString: String = {
                 guard let alias = boAlias else { return "" }
                 return "\(alias)."
             }()
-            if fieldExpression.isEmpty || fieldExpression.uppercased() == QueryBOKey.recId.uppercased() {
+            if recidExpression {
                 // no field expression, assume we mean RecId
                 leftArgument = selectAlias ?? boAliasString + QueryBOKey.recId
-                if type == .undefined {
-                    type = .number
-                }
             } else {
                 // try to get a field type using the expression as its name in the passed BO
-                if let fieldType = bo?.searchableField(forName: fieldExpression)?.fieldType {
-                    leftArgument = selectAlias ?? boAliasString + fieldExpression
-                    if type == .undefined {
-                        type = fieldType
-                    }
+                if let field = field {
+                    leftArgument = selectAlias ?? boAliasString + field.name
                 } else {
                     // could be some combined expression, just use it as it is
                     leftArgument = fieldExpression
-                    if type == .undefined {
-                        // assume string type, better evaluation needed here
-                        type = .string
-                    }
                 }
             }
         } else {
             leftArgument = "[\(leftArgument)]"
-            if fieldExpression.isEmpty {
-                type = .number
-            } else {
-                if let fieldType = bo?.field(forName: fieldExpression)?.fieldType {
-                    type = fieldType
-                } else {
-                    type = .string
-                }
-            }
         }
+        
+        type = guessType(defaultType: (recidExpression ? .number : (field?.fieldType ?? .string)))
+        
+//        if leftArgument.isEmpty {
+//            // no field alias, get the BO alias, if any
+//            let boAliasString: String = {
+//                guard let alias = boAlias else { return "" }
+//                return "\(alias)."
+//            }()
+//            if recidExpression {
+//                // no field expression, assume we mean RecId
+//                leftArgument = selectAlias ?? boAliasString + QueryBOKey.recId
+//                type = guessType(defaultType: .number)
+//            } else {
+//                // try to get a field type using the expression as its name in the passed BO
+//                if let fieldType = bo?.searchableField(forName: fieldExpression)?.fieldType {
+//                    leftArgument = selectAlias ?? boAliasString + fieldExpression
+//                    type = guessType(defaultType: fieldType)
+//                } else {
+//                    // could be some combined expression, just use it as it is
+//                    leftArgument = fieldExpression
+//                    // assume string type, better evaluation needed here
+//                    type = guessType(defaultType: .string)
+//                }
+//            }
+//        } else {
+//            leftArgument = "[\(leftArgument)]"
+//            if recidExpression {
+//                type = guessType(defaultType: .number)
+//            } else {
+//                if let fieldType = bo?.field(forName: fieldExpression)?.fieldType {
+//                    type = fieldType
+//                } else {
+//                    type = .string
+//                }
+//            }
+//        }
         
         return expression(leftArgument: leftArgument, type: type)
     }

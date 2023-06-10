@@ -769,7 +769,7 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
      */
     public var expression: String {
         // if we got a field alias use that as left argument
-        var leftArgument = selectAlias ?? ""
+//        var leftArgument = "" //selectAlias ?? ""
         func guessType(defaultType: QueryFieldType = .undefined) -> QueryFieldType {
             preferredType ?? defaultType
         }
@@ -777,27 +777,30 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
         let field: BO.Field? = { bo?.field(forName: fieldExpression) }()        
         let recidExpression = (fieldExpression.isEmpty || fieldExpression.uppercased() == QueryBOKey.recId.uppercased())
 
-        if leftArgument.isEmpty {
+//        if leftArgument.isEmpty {
             // no field alias, get the BO alias, if any
-            let boAliasString: String = {
-                guard let alias = boAlias else { return "" }
-                return "\(alias)."
-            }()
+        let boAliasString: String = {
+            guard let alias = boAlias else { return "" }
+            return "\(alias)."
+        }()
+        let leftArgument: String = {
             if recidExpression {
                 // no field expression, assume we mean RecId
-                leftArgument = selectAlias ?? boAliasString + QueryBOKey.recId
+                return boAliasString + QueryBOKey.recId
             } else {
                 // try to get a field type using the expression as its name in the passed BO
                 if let field = field {
-                    leftArgument = selectAlias ?? boAliasString + field.name
+                    return boAliasString + field.name
                 } else {
                     // could be some combined expression, just use it as it is
-                    leftArgument = fieldExpression
+                    return fieldExpression
                 }
             }
-        } else {
-            leftArgument = "[\(leftArgument)]"
-        }
+        }()
+
+//        } else {
+//            leftArgument = "[\(leftArgument)]"
+//        }
         
         type = guessType(defaultType: (recidExpression ? .number : (field?.fieldType ?? .string)))
         

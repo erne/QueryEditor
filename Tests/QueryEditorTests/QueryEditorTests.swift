@@ -295,7 +295,7 @@ final class QueryEditorTests: XCTestCase {
             let field = (bo as? Artists)?.nameField else { fatalError("test failed") }
         
         let expected: String = {
-            let leftArgument = (addFieldAlias ? "[string field]" : (addBOAlias ? "a.name" : "Artists.name"))
+            let leftArgument = (addBOAlias ? "a.name" : "Artists.name") //(addFieldAlias ? "[string field]" : (addBOAlias ? "a.name" : "Artists.name"))
             switch `operator` {
             case .equal:
                 return "\(leftArgument) = 'Dylan'"
@@ -343,7 +343,7 @@ final class QueryEditorTests: XCTestCase {
         let sep = Locale.current.dateSeparator
 
         let expected: String = {
-            let leftArgument = (addFieldAlias ? "[date field]" : (addBOAlias ? "a.birthday" : "Artists.birthday"))
+            let leftArgument = (addBOAlias ? "a.birthday" : "Artists.birthday") //(addFieldAlias ? "[date field]" : (addBOAlias ? "a.birthday" : "Artists.birthday"))
             switch `operator` {
             case .equal:
                 return "\(leftArgument) = '08\(sep)05\(sep)1959'"
@@ -378,7 +378,7 @@ final class QueryEditorTests: XCTestCase {
             let field = (bo as? Artists)?.opusField else { fatalError("test failed") }
 
         let expected: String = {
-            let leftArgument = (addFieldAlias ? "[number field]" : (addBOAlias ? "a.opus" : "Artists.opus"))
+            let leftArgument = (addBOAlias ? "a.opus" : "Artists.opus") //(addFieldAlias ? "[number field]" : (addBOAlias ? "a.opus" : "Artists.opus"))
             switch `operator` {
             case .equal:
                 return "\(leftArgument) = 7"
@@ -413,7 +413,7 @@ final class QueryEditorTests: XCTestCase {
             let field = (bo as? Artists)?.maleField else { fatalError("test failed") }
 
         let expected: String = {
-            let leftArgument = (addFieldAlias ? "[bool field]" : (addBOAlias ? "a.male" : "Artists.male"))
+            let leftArgument = (addBOAlias ? "a.male" : "Artists.male") //(addFieldAlias ? "[bool field]" : (addBOAlias ? "a.male" : "Artists.male"))
             switch `operator` {
             case .equal:
                 return "\(leftArgument) = TRUE"

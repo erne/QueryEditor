@@ -18,6 +18,7 @@ class BO: NSObject, QueryBO {
     var searchableFields: [Field] { fields }
     var orderFields: [Field] = []
     var links: [Link] = []
+    var queryable = true
 
     let alias: String
     var displayName: String { NSLocalizedString(name, comment: name) }
@@ -55,6 +56,7 @@ class Field: NSObject, QueryField {
     let name: String
     let fieldType: QueryFieldType
     var label: String { name }
+    var queryable = true
     
     fileprivate init(name: String, type: QueryFieldType, bo: BO) {
         self.name = name

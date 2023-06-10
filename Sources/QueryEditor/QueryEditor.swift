@@ -120,7 +120,8 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
     func configureBosPopoup() {
         bosPopup.removeAllItems()
         
-        db?.bos.forEach { bo in
+        db?.bos.filter { $0.queryable }
+            .forEach { bo in
             let icon = bo.type.icon
             icon?.size = NSSize(width: 16, height: 16)
             let item = NSMenuItem(title: bo.displayName,

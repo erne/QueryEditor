@@ -74,11 +74,13 @@ public protocol QueryBO: NSObject {
     var searchableFields: [Field] { get }
     var orderFields: [Field] { get }
     var links: [Link] { get }
+    var queryable: Bool { get }
 }
 
 extension QueryBO {
     var recIdAlias: String { "\(alias)_\(QueryBOKey.recId)" }
     var displayName: String { NSLocalizedString(name, comment: name) }
+    var searchableFields: [Field] { fields.filter { $0.queryable } }
     func field(forName name: String) -> Field? {
         fields.first { $0.name == name }
     }
@@ -168,6 +170,7 @@ public protocol QueryField: NSObject {
     var presetValues: [AnyHashable]? { get }
     var formatter: Formatter? { get }
     var allowedOperators: [QueryOperator]? { get }
+    var queryable: Bool { get }
 }
 /**
  Protocol defining the field pointing to another BO.

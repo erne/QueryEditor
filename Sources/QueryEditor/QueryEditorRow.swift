@@ -21,7 +21,8 @@ final class QueryFieldsMenu<DB: QueryDB>: NSMenu {
     private func configure(db: DB) { //}, action: Selector?) {
         autoenablesItems = false
         
-        db.bos.forEach { bo in
+        db.bos.filter { $0.queryable }
+            .forEach { bo in
             let icon = bo.type.icon
             icon?.size = NSSize(width: 16, height: 16)
             let item = NSMenuItem(title: bo.displayName,

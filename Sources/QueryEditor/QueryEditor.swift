@@ -44,12 +44,20 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
     public weak var delegate: QueryEditorDelegate?
     
     public var action: ((Query<DB>?) -> ())?
+    public var chooseMainBo = true {
+        didSet {
+            editorStackView.setVisibilityPriority((chooseMainBo ? .mustHold : .notVisible), for: boChooserStackView)
+        }
+    }
     public var liveSearch = false {
         didSet {
-            searchButton.isHidden = liveSearch
+            listStackView.setVisibilityPriority((liveSearch ? .notVisible : .mustHold), for: searchButton)
         }
     }
 
+    @IBOutlet var editorStackView: NSStackView!
+    @IBOutlet var boChooserStackView: NSStackView!
+    @IBOutlet var listStackView: NSStackView!
     @IBOutlet var searchButton: NSButton!
     @IBAction func searchAction(_ sender: Any) {
         doAction()

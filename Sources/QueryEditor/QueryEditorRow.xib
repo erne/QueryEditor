@@ -33,7 +33,7 @@
                                 <constraint firstAttribute="width" constant="18" id="bBp-aN-6bh"/>
                                 <constraint firstAttribute="height" constant="18" id="jhG-lt-5ea"/>
                             </constraints>
-                            <buttonCell key="cell" type="roundRect" title="Button" bezelStyle="roundedRect" image="NSRemoveTemplate" imagePosition="only" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="Zo5-qn-G81">
+                            <buttonCell key="cell" type="roundRect" bezelStyle="roundedRect" image="NSRemoveTemplate" imagePosition="overlaps" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="Zo5-qn-G81">
                                 <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                 <font key="font" metaFont="cellTitle"/>
                             </buttonCell>
@@ -47,7 +47,7 @@
                                 <constraint firstAttribute="width" constant="18" id="P3C-J3-Yxe"/>
                                 <constraint firstAttribute="height" constant="18" id="RuA-WS-8S0"/>
                             </constraints>
-                            <buttonCell key="cell" type="roundRect" title="Button" bezelStyle="roundedRect" image="NSAddTemplate" imagePosition="only" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="tet-OS-VBZ">
+                            <buttonCell key="cell" type="roundRect" bezelStyle="roundedRect" image="NSAddTemplate" imagePosition="overlaps" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="tet-OS-VBZ">
                                 <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                 <font key="font" metaFont="cellTitle"/>
                             </buttonCell>

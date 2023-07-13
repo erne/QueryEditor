@@ -292,7 +292,7 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
     func updateRowIndexes(in tableView: NSTableView, startingAt startIndex: Int, endingAt endIndex: Int? = nil) {
         let endIndex = endIndex ?? tableView.numberOfRows - 1
         
-        guard startIndex < endIndex else { return }
+        guard startIndex <= endIndex else { return }
         
         (startIndex...endIndex).enumerated().forEach { (_, index) in
             guard let editorRow = tableView.rowView(atRow: index, makeIfNecessary: true)?.subviews.first as? QueryEditorRow<DB>

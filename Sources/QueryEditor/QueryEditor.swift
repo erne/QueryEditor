@@ -63,7 +63,6 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
         doAction()
     }
     func doAction() {
-        objects = queryEditorWhereExpressions
         delegate?.queryEditorSearchAction(self)
         action?(query)
     }
@@ -74,6 +73,7 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
             let query = query
             else { return }
         
+        updateObjects()
         if !(delegate?.queryEditorBoAction(self, newBO: bo) ?? false) {
             query.mainBos = [bo]
             query.selectFields = [QuerySelect(fieldExpression: "*", bo: bo)]
@@ -240,6 +240,7 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
                         rowView.removeRowButton.isHidden = false
                     }
                     self.updateRowIndexes(in: tableView, startingAt: row + 1)
+                    self.updateObjects()
                     if self.liveSearch {
                         self.doAction()
                     }
@@ -301,6 +302,10 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
         }
     }
     
+    public func updateObjects() {
+        objects = queryEditorWhereExpressions
+    }
+    
 //    public func tableView(_ tableView: NSTableView, shouldMoveRow oldIndex: Int, to newIndex: Int) -> Bool {
 ////        guard let editorRow = tableView.rowView(atRow: oldIndex, makeIfNecessary: true)?.subviews.first as? QueryEditorRow<DB>
 ////            else { return false }
@@ -322,6 +327,7 @@ open class QueryEditor<DB: QueryDB>: NSViewController, DragReorderTableViewDataS
         } else {
             updateRowIndexes(in: tableView, startingAt: newIndex, endingAt: oldIndex)
         }
+        updateObjects()
         if liveSearch {
             doAction()
         }

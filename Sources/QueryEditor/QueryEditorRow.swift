@@ -185,6 +185,11 @@ open class QueryEditorRow<DB: QueryDB>: NSTableCellView, NSTextFieldDelegate, NS
         guard let value = obj as? AnyHashable else { return false }
         return validateValue(value)
     }
+//    private var oldQueryWhere: QueryWhere<BO>?
+//    public func control(_ control: NSControl, textShouldBeginEditing fieldEditor: NSText) -> Bool {
+//        oldQueryWhere = queryWhere
+//        return true
+//    }
     @IBOutlet weak var queryValueDatePicker: NSDatePicker! {
         didSet { queryValueDatePicker.delegate = self }
     }
@@ -254,6 +259,9 @@ open class QueryEditorRow<DB: QueryDB>: NSTableCellView, NSTextFieldDelegate, NS
     }
     
     @IBAction func action(_ sender: Any) {
+        guard
+            (objectValue as? QueryWhere<BO>) != queryWhere
+            else { return }
         internalAction = true
         defer { internalAction = false }
         guard let queryWhere = queryWhere

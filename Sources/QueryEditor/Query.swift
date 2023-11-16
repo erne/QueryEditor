@@ -250,7 +250,9 @@ public enum QueryFieldType: String {
                     .endsWith,
                     .notEqual,
                     .like,
-                    .notLike]
+                    .notLike,
+                    .in,
+                    .notIn]
         case .number:
             return [.equal,
                     .greater,
@@ -259,7 +261,9 @@ public enum QueryFieldType: String {
                     .lessOrEqual,
                     .notEqual,
                     .like,
-                    .notLike]
+                    .notLike,
+                    .in,
+                    .notIn]
         case .boolean:
             return [.equal, .notEqual]
         case .date, .time:
@@ -268,7 +272,9 @@ public enum QueryFieldType: String {
                     .greaterOrEqual,
                     .less,
                     .lessOrEqual,
-                    .notEqual]
+                    .notEqual,
+                    .in,
+                    .notIn]
         default:
             return []
         }
@@ -294,6 +300,8 @@ public enum QueryOperator: String {
     case like = "LIKE"
     case notLike = "NOT LIKE"
     case regex = "REGEX"
+    case `in` = "IN"
+    case notIn = "NOT IN"
     
 }
 
@@ -324,6 +332,10 @@ extension QueryOperator: CaseIterable {
             return NSLocalizedString("not like", comment: "not like")
         case .regex:
             return NSLocalizedString("regex", comment: "regex")
+        case .in:
+            return NSLocalizedString("in", comment: "in")
+        case .notIn:
+            return NSLocalizedString("not in", comment: "not in")
         }
     }
     /**
@@ -700,8 +712,10 @@ extension NSComparisonPredicate.Operator {
             return .lessOrEqual
         case .notEqualTo:
             return .notEqual
+        case .in:
+            return .in
         default:
-            fatalError("unsupported oprator")
+            fatalError("unsupported operator")
         }
     }
 }
@@ -863,6 +877,10 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
             case .contains:
                 rightArgument = "'%\(escapeString(valueString))%'"
                 op = "LIKE"
+            case .in, .notIn:
+                if let values = value as? [String] {
+                    rightArgument = "(\(values.map { "'\($0)'" }.joined(separator: ", ")))"
+                }
             default:
                 break
             }
@@ -877,12 +895,40 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
 //                    leftArgument = "LEFT(\(leftArgument), \(valueString.count))"
 //                }
 //            }
-        case .date,
-             .time:
-            if let date = dateValue(value) {
-                rightArgument = "'\(DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .none))'"
-            } else {
-                rightArgument = ""
+        case .date:
+            func dateString(value: AnyHashable?) -> String? {
+                guard
+                let date = dateValue(value)
+                    else { return nil}
+                return "'\(DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .none))'"
+            }
+
+            switch self.operator {
+            case .in, .notIn:
+                guard
+                    let values = value as? [Date]
+                    else { return "()" }
+                rightArgument = "(\(values.compactMap { dateString(value: $0) }.joined(separator: ", ")))"
+            default:
+                rightArgument = dateString(value: value) ?? "''"
+            }
+            
+        case .time:
+            func timeString(value: AnyHashable?) -> String? {
+                guard
+                let date = dateValue(value)
+                    else { return nil}
+                return "'\(DateFormatter.localizedString(from: date, dateStyle: .none, timeStyle: .short))'"
+            }
+
+            switch self.operator {
+            case .in, .notIn:
+                guard
+                    let values = value as? [Date]
+                    else { return "()" }
+                rightArgument = "(\(values.compactMap { timeString(value: $0) }.joined(separator: ", ")))"
+            default:
+                rightArgument = timeString(value: value) ?? "''"
             }
  
         case .boolean:
@@ -890,7 +936,15 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
             
         case .number,
              .link:
-            rightArgument = (numberValue(value) ?? 0).stringValue
+            switch self.operator {
+            case .in, .notIn:
+                guard
+                    let values = value as? [AnyHashable]
+                    else { return "()" }
+                rightArgument = "(\(values.compactMap { numberValue($0)?.stringValue }.joined(separator: ", ")))"
+            default:
+                rightArgument = (numberValue(value) ?? 0).stringValue
+            }
 
         default:
             return "\(leftArgument) IS NULL"

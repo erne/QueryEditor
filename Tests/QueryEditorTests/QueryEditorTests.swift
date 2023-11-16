@@ -266,23 +266,23 @@ final class QueryEditorTests: XCTestCase {
         queryOrder(addBOAlias: true, addFieldAlias: false, descending: false)
         queryOrder(addBOAlias: true, addFieldAlias: false, descending: true)
     }
-
+    
     func queryWhere(type: QueryFieldType = .string, addBOAlias: Bool = false, operator: QueryOperator = .equal, addFieldAlias: Bool = false) {
 //        let db = testCreateDB(addAlias: addBOAlias)
         
         switch type {
         case .string:
-            let operators: [QueryOperator] = [.equal, .beginsWith, .endsWith, .contains]
-            operators.forEach { queryWhereString(addBOAlias: addBOAlias, operator: $0, addFieldAlias: addFieldAlias) }
+//            let operators: [QueryOperator] = [.equal, .beginsWith, .endsWith, .contains]
+            type.allowedOperators.forEach { queryWhereString(addBOAlias: addBOAlias, operator: $0, addFieldAlias: addFieldAlias) }
         case .number:
-            let operators: [QueryOperator] = [.equal, .lessOrEqual, .less, .greaterOrEqual, .greater]
-            operators.forEach { queryWhereNumber(addBOAlias: addBOAlias, operator: $0, addFieldAlias: addFieldAlias) }
+//            let operators: [QueryOperator] = [.equal, .lessOrEqual, .less, .greaterOrEqual, .greater]
+            type.allowedOperators.forEach { queryWhereNumber(addBOAlias: addBOAlias, operator: $0, addFieldAlias: addFieldAlias) }
         case .date:
-            let operators: [QueryOperator] = [.equal, .lessOrEqual, .less, .greaterOrEqual, .greater]
-            operators.forEach { queryWhereDate(addBOAlias: addBOAlias, operator: $0, addFieldAlias: addFieldAlias) }
+//            let operators: [QueryOperator] = [.equal, .lessOrEqual, .less, .greaterOrEqual, .greater]
+            type.allowedOperators.forEach { queryWhereDate(addBOAlias: addBOAlias, operator: $0, addFieldAlias: addFieldAlias) }
         case .boolean:
-            let operators: [QueryOperator] = [.equal, .notEqual]
-            operators.forEach { queryWhereBool(addBOAlias: addBOAlias, operator: $0, addFieldAlias: addFieldAlias) }
+//            let operators: [QueryOperator] = [.equal, .notEqual]
+            type.allowedOperators.forEach { queryWhereBool(addBOAlias: addBOAlias, operator: $0, addFieldAlias: addFieldAlias) }
         default:
             break
         }
@@ -299,19 +299,38 @@ final class QueryEditorTests: XCTestCase {
             switch `operator` {
             case .equal:
                 return "\(leftArgument) = 'Dylan'"
+            case .notEqual:
+                return "\(leftArgument) <> 'Dylan'"
+            case .like:
+                return "\(leftArgument) LIKE 'Dylan'"
+            case .notLike:
+                return "\(leftArgument) NOT LIKE 'Dylan'"
             case .beginsWith:
                 return "LEFT(\(leftArgument), 5) = 'Dylan'"
             case .endsWith:
                 return "RIGHT(\(leftArgument), 5) = 'Dylan'"
             case .contains:
                 return "\(leftArgument) LIKE '%Dylan%'"
+            case .in:
+                return "\(leftArgument) IN ('Dylan', 'Marley', 'Zappa')"
+            case .notIn:
+                return "\(leftArgument) NOT IN ('Dylan', 'Marley', 'Zappa')"
             default:
                 return ""
             }
         }()
         
+        let value: AnyHashable = {
+            switch `operator` {
+            case .in, .notIn:
+                return ["Dylan", "Marley", "Zappa"]
+            default:
+                return "Dylan"
+            }
+        }()
+
         let queryWhere = QueryWhere(fieldExpression: field.name,
-                                    value: "Dylan",
+                                    value: value,
                                     operator: `operator`,
                                     bo: bo,
                                     fieldAlias: addFieldAlias ? "string field" : nil)
@@ -347,6 +366,8 @@ final class QueryEditorTests: XCTestCase {
             switch `operator` {
             case .equal:
                 return "\(leftArgument) = '08\(sep)05\(sep)1959'"
+            case .notEqual:
+                return "\(leftArgument) <> '08\(sep)05\(sep)1959'"
             case .less:
                 return "\(leftArgument) < '08\(sep)05\(sep)1959'"
             case .lessOrEqual:
@@ -355,13 +376,26 @@ final class QueryEditorTests: XCTestCase {
                 return "\(leftArgument) > '08\(sep)05\(sep)1959'"
             case .greaterOrEqual:
                 return "\(leftArgument) >= '08\(sep)05\(sep)1959'"
+            case .in:
+                return "\(leftArgument) IN ('08\(sep)05\(sep)1959', '02\(sep)12\(sep)1957')"
+            case .notIn:
+                return "\(leftArgument) NOT IN ('08\(sep)05\(sep)1959', '02\(sep)12\(sep)1957')"
             default:
                 return ""
             }
         }()
         
+        let value: AnyHashable = {
+            switch `operator` {
+            case .in, .notIn:
+                return [dateValue("08-05-1959"), dateValue("02-12-1957")]
+            default:
+                return dateValue("08-05-1959")
+            }
+        }()
+
         let expression = QueryWhere(fieldExpression: field.name,
-                                    value: dateValue("08-05-1959"),
+                                    value: value,
                                     operator: `operator`,
                                     bo: bo,
                                     fieldAlias: addFieldAlias ? "date field" : nil).expression
@@ -382,6 +416,12 @@ final class QueryEditorTests: XCTestCase {
             switch `operator` {
             case .equal:
                 return "\(leftArgument) = 7"
+            case .notEqual:
+                return "\(leftArgument) <> 7"
+            case .like:
+                return "\(leftArgument) LIKE 7"
+            case .notLike:
+                return "\(leftArgument) NOT LIKE 7"
             case .less:
                 return "\(leftArgument) < 7"
             case .lessOrEqual:
@@ -390,13 +430,26 @@ final class QueryEditorTests: XCTestCase {
                 return "\(leftArgument) > 7"
             case .greaterOrEqual:
                 return "\(leftArgument) >= 7"
+            case .in:
+                return "\(leftArgument) IN (8, 5, 1959)"
+            case .notIn:
+                return "\(leftArgument) NOT IN (8, 5, 1959)"
             default:
                 return ""
             }
         }()
         
+        let value: AnyHashable = {
+            switch `operator` {
+            case .in, .notIn:
+                return [8, 5, 1959]
+            default:
+                return 7
+            }
+        }()
+        
         let expression = QueryWhere(fieldExpression: field.name,
-                                    value: 7,
+                                    value: value,
                                     operator: `operator`,
                                     bo: bo,
                                     fieldAlias: addFieldAlias ? "number field" : nil).expression

@@ -878,9 +878,9 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
                 rightArgument = "'%\(escapeString(valueString))%'"
                 op = "LIKE"
             case .in, .notIn:
-                if let values = value as? [String] {
-                    rightArgument = "(\(values.map { "'\($0)'" }.joined(separator: ", ")))"
-                }
+                let values = (value as? [String]) ??
+                    valueString.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                rightArgument = "(\(values.map { "'\($0)'" }.joined(separator: ", ")))"
             default:
                 break
             }
@@ -900,17 +900,18 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
                 guard
                 let date = dateValue(value)
                     else { return nil}
-                return "'\(DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .none))'"
+                return "\(DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .none))"
             }
 
             switch self.operator {
             case .in, .notIn:
-                guard
-                    let values = value as? [Date]
-                    else { return "()" }
-                rightArgument = "(\(values.compactMap { dateString(value: $0) }.joined(separator: ", ")))"
+                let values: [String] = (value as? [AnyHashable] ??
+                    (value as? String)?.split(separator: ",").map { String($0) } ??
+                    [(dateString(value: value) ?? "")])
+                    .compactMap { dateString(value: $0) }
+                rightArgument = "(\(values.map { "'\($0)'" }.joined(separator: ", ")))"
             default:
-                rightArgument = dateString(value: value) ?? "''"
+                rightArgument = "'\(dateString(value: value) ?? "")'"
             }
             
         case .time:
@@ -923,9 +924,8 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
 
             switch self.operator {
             case .in, .notIn:
-                guard
-                    let values = value as? [Date]
-                    else { return "()" }
+                let values = value as? [AnyHashable] ??
+                    (value as? String ?? "").split(separator: ",").map { String($0) }
                 rightArgument = "(\(values.compactMap { timeString(value: $0) }.joined(separator: ", ")))"
             default:
                 rightArgument = timeString(value: value) ?? "''"
@@ -938,9 +938,9 @@ public struct QueryWhere<BO: QueryBO>: QueryFieldExpression {
              .link:
             switch self.operator {
             case .in, .notIn:
-                guard
-                    let values = value as? [AnyHashable]
-                    else { return "()" }
+                let values = value as? [AnyHashable] ??
+                    (value as? String ?? "").split(separator: ",").map { String($0) }
+
                 rightArgument = "(\(values.compactMap { numberValue($0)?.stringValue }.joined(separator: ", ")))"
             default:
                 rightArgument = (numberValue(value) ?? 0).stringValue
